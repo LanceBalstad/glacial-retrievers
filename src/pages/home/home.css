@@ -1,0 +1,39 @@
+.title-image {
+    width: 100%;
+    height: clamp(200px, 38vw, 550px);
+    overflow: hidden;
+}
+
+.title-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.about {
+    padding-left: 10%;
+    padding-right: 20%;
+    align-items: left;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    padding: 40px 10%;
+}
+
+@media (max-width: 1200px) {
+    .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .cards {
+        grid-template-columns: 1fr;
+        padding: 24px 5%;
+        gap: 24px;
+    }
+}

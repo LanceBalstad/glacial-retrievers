@@ -1,0 +1,169 @@
+.training-page {
+    --page-accent: #db5931;
+    --page-charcoal: #2c2c2c;
+    color: var(--page-charcoal);
+}
+
+.training-intro {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: clamp(56px, 9vw, 104px) 8% clamp(40px, 7vw, 76px);
+    text-align: center;
+}
+
+.training-intro h2,
+.training-programs-heading h2 {
+    margin: 0 0 18px;
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    line-height: 1.15;
+}
+
+.training-intro > p:last-child,
+.training-programs-heading > p:last-child {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.75;
+}
+
+.training-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    padding: 0 10% clamp(56px, 9vw, 104px);
+}
+
+.training-step {
+    padding: 28px;
+    border-top: 4px solid var(--page-accent);
+    background: #f5f2ed;
+}
+
+.training-step-number {
+    color: var(--page-accent);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.training-step h3 {
+    margin: 16px 0 10px;
+    font-size: 1.25rem;
+}
+
+.training-step p {
+    margin: 0;
+    line-height: 1.65;
+}
+
+.training-programs {
+    padding: clamp(56px, 9vw, 104px) 10%;
+}
+
+.training-programs-heading {
+    max-width: 760px;
+    margin: 0 auto 36px;
+    text-align: center;
+}
+
+.training-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 0 auto;
+    border-bottom: 1px solid #d5d0c9;
+}
+
+.training-tab {
+    flex: 0 0 auto;
+    padding: 14px 18px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: #4b4b4b;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.training-tab[aria-selected="true"] {
+    border-bottom-color: var(--page-accent);
+    color: var(--page-accent);
+}
+
+.training-tab:focus-visible,
+.training-program-panel:focus-visible {
+    outline: 3px solid var(--page-accent);
+    outline-offset: 3px;
+}
+
+.training-program-panel {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(28px, 6vw, 72px);
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 52px);
+    background: #f5f2ed;
+}
+
+.training-program-copy h3 {
+    margin: 0 0 12px;
+    color: var(--page-accent);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.training-program-copy p {
+    margin: 0;
+    line-height: 1.7;
+}
+
+.training-program-list {
+    display: grid;
+    gap: 14px;
+    align-content: center;
+    margin: 0;
+    padding-left: 24px;
+    line-height: 1.6;
+}
+
+.training-program-list li::marker {
+    color: var(--page-accent);
+}
+
+.training-program-note {
+    max-width: 900px;
+    margin: 18px auto 0;
+    color: #5b5b5b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+    .training-steps {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding-right: 6%;
+        padding-left: 6%;
+    }
+
+    .training-programs {
+        padding-right: 6%;
+        padding-left: 6%;
+    }
+
+    .training-tabs {
+        justify-content: flex-start;
+    }
+
+    .training-tab {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .training-program-panel {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 24px;
+    }
+}

@@ -1,0 +1,109 @@
+.content-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: clamp(360px, 48vw, 600px);
+    overflow: hidden;
+    background: #383b3e;
+    color: #fff;
+}
+
+.content-hero-image,
+.content-hero-shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.content-hero-image {
+    object-fit: cover;
+    object-position: center 45%;
+}
+
+.content-hero-shade {
+    background: linear-gradient(
+        90deg,
+        rgb(20 24 27 / 78%) 0%,
+        rgb(20 24 27 / 48%) 48%,
+        rgb(20 24 27 / 8%) 100%
+    );
+}
+
+.content-hero-copy {
+    position: relative;
+    z-index: 1;
+    width: min(620px, 80%);
+    margin-left: clamp(24px, 10vw, 150px);
+    padding: 56px 0;
+}
+
+.content-hero-copy h1 {
+    margin: 8px 0 16px;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    line-height: 1;
+}
+
+.content-hero-description {
+    max-width: 520px;
+    margin: 0;
+    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+    line-height: 1.55;
+}
+
+.content-eyebrow {
+    margin: 0 0 10px;
+    color: var(--page-accent, #db5931);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.content-hero .content-eyebrow {
+    color: #f7b49e;
+}
+
+.content-hero-link {
+    display: inline-block;
+    margin-top: 28px;
+    padding: 13px 20px;
+    background: var(--page-accent, #db5931);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.content-hero-link:hover {
+    background: #b94421;
+}
+
+.content-hero-link:focus-visible {
+    outline: 3px solid #f7b49e;
+    outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+    .content-hero {
+        min-height: 420px;
+    }
+
+    .content-hero-image {
+        object-position: 58% center;
+    }
+
+    .content-hero-shade {
+        background: linear-gradient(
+            90deg,
+            rgb(20 24 27 / 74%) 0%,
+            rgb(20 24 27 / 46%) 100%
+        );
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .content-hero-link {
+        transition: none;
+    }
+}
