@@ -1,4 +1,3 @@
-import React from "react";
 import { HamburgerIcon } from "../icons/iconIndex";
 import "./header.css";
 
