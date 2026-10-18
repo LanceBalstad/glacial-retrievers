@@ -1,6 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import trainingImage from "../../assets/trainingImage.jpg";
-import PageContact from "../../components/pageContact/pageContact.tsx";
 import PageFaq, {
   type PageQuestion,
 } from "../../components/pageFaq/pageFaq.tsx";
@@ -137,7 +136,7 @@ const Training = () => {
         linkHref="#training-programs"
       />
 
-      <section className="training-intro">
+      {/* <section className="training-intro">
         <p className="training-eyebrow">A plan for your dog</p>
         <h2>Confident dogs, capable partners</h2>
         <p>
@@ -147,7 +146,7 @@ const Training = () => {
           a foundation or developing field skills, the aim is steady, positive
           progress you can continue together.
         </p>
-      </section>
+      </section> */}
 
       <section className="training-programs" id="training-programs">
         <div className="training-programs-heading">
@@ -210,7 +209,7 @@ const Training = () => {
         </p>
       </section>
 
-      <section className="training-steps" aria-label="Our training approach">
+      {/* <section className="training-steps" aria-label="Our training approach">
         <article className="training-step">
           <span className="training-step-number">01</span>
           <h3>Talk through your goals</h3>
@@ -235,7 +234,7 @@ const Training = () => {
             progress forward at home.
           </p>
         </article>
-      </section>
+      </section> */}
 
       <PageFaq
         id="training-faq"
@@ -245,12 +244,6 @@ const Training = () => {
         questions={trainingQuestions}
       />
 
-      <PageContact
-        eyebrow="Start a conversation"
-        title="Let’s talk about your dog"
-        description="Share your dog’s age, experience, and what you’d like to work on. We can discuss whether training is a good fit and what a next step could look like."
-        note="Contact the kennel to talk with the trainer about your dog."
-      />
     </main>
   );
 };

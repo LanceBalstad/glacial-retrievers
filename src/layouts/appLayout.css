@@ -1,0 +1,13 @@
+.app-root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.titleBarWrapper {
+    flex: 0 0 auto;
+}
+
+.contentWrapper {
+    flex: 1 0 auto;
+}

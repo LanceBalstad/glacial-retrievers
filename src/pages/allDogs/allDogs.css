@@ -1,0 +1,16 @@
+.all-dogs-page {
+    --page-accent: #db5931;
+    --page-charcoal: #2c2c2c;
+    color: var(--page-charcoal);
+}
+
+.all-dogs-content {
+    padding: clamp(40px, 7vw, 80px) 10%;
+}
+
+@media (max-width: 650px) {
+    .all-dogs-content {
+        padding-right: 6%;
+        padding-left: 6%;
+    }
+}

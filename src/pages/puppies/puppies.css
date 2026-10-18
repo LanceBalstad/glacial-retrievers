@@ -1,0 +1,82 @@
+.puppies-page {
+    --page-accent: #db5931;
+    --page-charcoal: #2c2c2c;
+    color: var(--page-charcoal);
+}
+
+.puppies-intro {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: clamp(56px, 9vw, 104px) 8% clamp(40px, 7vw, 76px);
+    text-align: center;
+}
+
+.puppies-eyebrow {
+    margin: 0 0 10px;
+    color: var(--page-accent);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.puppies-intro h2 {
+    margin: 0 0 18px;
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    line-height: 1.15;
+}
+
+.puppies-intro > p:last-child {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.75;
+}
+
+.puppy-foundations {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    padding: 0 10% clamp(56px, 9vw, 104px);
+}
+
+.puppy-foundation-card {
+    padding: 28px;
+    border-top: 4px solid var(--page-accent);
+    background: #f5f2ed;
+}
+
+.puppy-foundation-card > span {
+    color: var(--page-accent);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.puppy-foundation-card h3 {
+    margin: 16px 0 10px;
+    font-size: 1.25rem;
+}
+
+.puppy-foundation-card p {
+    margin: 0;
+    line-height: 1.65;
+}
+
+.puppies-listing {
+    padding: clamp(56px, 9vw, 104px) 10%;
+    background: #fbfaf8;
+}
+
+@media (max-width: 700px) {
+    .puppy-foundations {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding-right: 6%;
+        padding-left: 6%;
+    }
+
+    .puppies-listing {
+        padding-right: 6%;
+        padding-left: 6%;
+    }
+}

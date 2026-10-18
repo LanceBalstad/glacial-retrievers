@@ -1,5 +1,4 @@
 import boardingImage from "../../assets/boadingImage.jpg";
-import PageContact from "../../components/pageContact/pageContact.tsx";
 import PageFaq, {
   type PageQuestion,
 } from "../../components/pageFaq/pageFaq.tsx";
@@ -121,12 +120,6 @@ const Boarding = () => {
         questions={boardingQuestions}
       />
 
-      <PageContact
-        eyebrow="Mahnomen, Minnesota"
-        title="Let’s plan your dog’s stay"
-        description="Contact us with your preferred dates, your dog’s routine, and any questions. We’ll confirm availability and go over the details with you."
-        note="Please confirm availability and arrival details before visiting."
-      />
     </main>
   );
 };
