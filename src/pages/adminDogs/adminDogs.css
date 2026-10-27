@@ -1,0 +1,131 @@
+.all-dogs-page {
+  --page-accent: #db5931;
+  --page-charcoal: #2c2c2c;
+  color: var(--page-charcoal);
+}
+
+.all-dogs-content {
+  padding: clamp(40px, 7vw, 80px) 10%;
+}
+
+.admin-dogs-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.admin-add-dog,
+.admin-form-save,
+.admin-form-cancel {
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--page-accent);
+  background: var(--page-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-form-cancel {
+  background: transparent;
+  color: var(--page-accent);
+}
+
+.admin-dog-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 24, 24, 0.58);
+  padding: 20px;
+}
+
+.admin-dog-form-panel {
+  width: min(760px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  background: #f5f2ed;
+  border: 1px solid rgba(44, 44, 44, 0.08);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
+}
+
+.admin-dog-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-dog-form-panel h2 {
+  margin: 0;
+}
+
+.admin-modal-close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--page-accent);
+  background: transparent;
+  color: var(--page-accent);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-form-grid label {
+  display: grid;
+  gap: 8px;
+  color: var(--page-charcoal);
+  font-weight: 700;
+}
+
+.admin-form-grid input,
+.admin-form-grid select,
+.admin-form-grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #c9c4bc;
+  background: #fff;
+  color: var(--page-charcoal);
+  font: inherit;
+}
+
+.admin-form-full {
+  grid-column: 1 / -1;
+}
+
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.admin-dog-form-error {
+  margin: 16px 0 0;
+  color: #a63825;
+  font-weight: 600;
+}
+
+@media (max-width: 650px) {
+  .all-dogs-content {
+    padding-right: 6%;
+    padding-left: 6%;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

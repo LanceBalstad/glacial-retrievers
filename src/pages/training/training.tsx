@@ -132,21 +132,9 @@ const Training = () => {
         eyebrow="Glacial Retrievers"
         title="Gun Dog Training"
         description="Thoughtful, practical training that helps you and your dog build skills together."
-        linkText="Explore training"
-        linkHref="#training-programs"
+        linkText="Book Training"
+        linkHref="/training-booking"
       />
-
-      {/* <section className="training-intro">
-        <p className="training-eyebrow">A plan for your dog</p>
-        <h2>Confident dogs, capable partners</h2>
-        <p>
-          Every dog arrives with a different personality, experience, and set of
-          goals. We start by learning what you hope to accomplish, then shape
-          training around your dog’s needs and progress. Whether you’re building
-          a foundation or developing field skills, the aim is steady, positive
-          progress you can continue together.
-        </p>
-      </section> */}
 
       <section className="training-programs" id="training-programs">
         <div className="training-programs-heading">

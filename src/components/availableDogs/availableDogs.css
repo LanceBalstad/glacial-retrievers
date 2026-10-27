@@ -235,6 +235,144 @@
     margin-top: 20px;
 }
 
+.admin-dog-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.admin-dog-edit,
+.admin-dog-delete {
+    flex: 1;
+    min-height: 40px;
+    border: 1px solid var(--dogs-orange);
+    background: transparent;
+    color: var(--dogs-orange);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.admin-dog-delete {
+    border-color: #a63825;
+    color: #a63825;
+}
+
+.interest-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(26, 26, 26, 0.58);
+}
+
+.interest-modal {
+    width: min(100%, 480px);
+    background: #fff;
+    border-radius: 18px;
+    padding: 22px 20px 18px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.22);
+}
+
+.interest-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.interest-modal-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #1e2a1d;
+}
+
+.interest-modal-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: #4d4d4d;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.interest-modal-copy {
+    margin: 0 0 18px;
+    color: #4b4b4b;
+    font-weight: 600;
+}
+
+.interest-form {
+    display: grid;
+    gap: 16px;
+}
+
+.interest-form label {
+    display: grid;
+    gap: 8px;
+    color: #1e2a1d;
+    font-weight: 700;
+}
+
+.interest-form input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid #d0c8bf;
+    border-radius: 10px;
+    font: inherit;
+}
+
+.interest-form button {
+    min-height: 46px;
+    border: none;
+    border-radius: 999px;
+    background: var(--dogs-orange);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.interest-form button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.interest-form-message {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.interest-form-message.success {
+    background: #edf7ed;
+    color: #1f5636;
+}
+
+.interest-form-message.error {
+    background: #fff1f0;
+    color: #9a2f2f;
+}
+
+
+.admin-dog-edit:hover,
+.admin-dog-delete:hover {
+    background: var(--dogs-orange);
+    color: #fff;
+}
+
+.admin-dog-delete:hover {
+    background: #a63825;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .available-dog-interest {
         transition: none;

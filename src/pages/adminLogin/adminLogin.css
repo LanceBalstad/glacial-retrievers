@@ -1,0 +1,72 @@
+.admin-page {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(2rem, 4vw, 4rem) 1.5rem;
+}
+
+.admin-card {
+  width: min(100%, 560px);
+  background: #fff;
+  border: 1px solid rgba(44, 44, 44, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(44, 44, 44, 0.08);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.admin-eyebrow {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #db5931;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-card h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2rem, 5vw, 2.6rem);
+  color: #2c2c2c;
+}
+
+.admin-card p {
+  margin: 0 0 1rem;
+  line-height: 1.6;
+  color: #4c4c4c;
+}
+
+.admin-login-button,
+.admin-card button {
+  border: none;
+  border-radius: 999px;
+  background: #db5931;
+  color: white;
+  padding: 0.8rem 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-login-button:hover,
+.admin-card button:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.admin-error {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: rgba(219, 89, 49, 0.08);
+  color: #8f2d12;
+  font-weight: 600;
+}
+
+.admin-access-denied {
+  border-color: rgba(219, 89, 49, 0.4);
+}
+

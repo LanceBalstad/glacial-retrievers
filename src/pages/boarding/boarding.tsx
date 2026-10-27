@@ -47,8 +47,8 @@ const Boarding = () => {
         eyebrow="Glacial Retrievers · Mahnomen, MN"
         title="A comfortable stay for your dog"
         description="Thoughtful boarding starts with understanding your dog’s routine and helping you feel prepared for their stay."
-        linkText="Plan a stay"
-        linkHref="#boarding-details"
+        linkText="Book Now"
+        linkHref="/boarding-booking"
       />
 
       <section className="boarding-intro" id="boarding-details">

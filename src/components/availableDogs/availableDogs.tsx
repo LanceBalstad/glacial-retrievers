@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import logo from "../../assets/logo.jpg";
 import "./availableDogs.css";
 
@@ -11,6 +11,7 @@ interface Dog {
   id: number;
   name: string | null;
   breed_id: number;
+  status_id?: number;
   breed: string;
   date_of_birth: string | null;
   sex: "M" | "F" | null;
@@ -24,6 +25,9 @@ type SexFilter = "" | "M" | "F";
 
 interface AvailableDogsProps {
   puppiesOnly?: boolean;
+  adminMode?: boolean;
+  onEditDog?: (dog: Dog) => void;
+  onDeleteDog?: (dogId: number) => void;
 }
 
 const calculateAge = (dateOfBirth: string | null): string | null => {
@@ -60,7 +64,19 @@ const calculateAge = (dateOfBirth: string | null): string | null => {
   return years === 1 ? "1 year old" : `${years} years old`;
 };
 
-const DogCard = ({ dog }: { dog: Dog }) => {
+const DogCard = ({
+  dog,
+  adminMode = false,
+  onEditDog,
+  onDeleteDog,
+  onInterestClick,
+}: {
+  dog: Dog;
+  adminMode?: boolean;
+  onEditDog?: (dog: Dog) => void;
+  onDeleteDog?: (dogId: number) => void;
+  onInterestClick?: (dog: Dog) => void;
+}) => {
   const numericPrice = dog.price === null ? null : Number(dog.price);
   const age = calculateAge(dog.date_of_birth);
   const price =
@@ -100,15 +116,46 @@ const DogCard = ({ dog }: { dog: Dog }) => {
         {dog.description && (
           <p className="available-dog-description">{dog.description}</p>
         )}
-        <button className="available-dog-interest" type="button">
-          I’m interested
-        </button>
+
+        {adminMode && (
+          <div className="admin-dog-actions">
+            <button
+              type="button"
+              className="admin-dog-edit"
+              onClick={() => onEditDog?.(dog)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="admin-dog-delete"
+              onClick={() => onDeleteDog?.(dog.id)}
+            >
+              Delete
+            </button>
+          </div>
+        )}
+
+        {!adminMode && (
+          <button
+            className="available-dog-interest"
+            type="button"
+            onClick={() => onInterestClick?.(dog)}
+          >
+            I’m interested
+          </button>
+        )}
       </div>
     </article>
   );
 };
 
-const AvailableDogs = ({ puppiesOnly = false }: AvailableDogsProps) => {
+const AvailableDogs = ({
+  puppiesOnly = false,
+  adminMode = false,
+  onEditDog,
+  onDeleteDog,
+}: AvailableDogsProps) => {
   const [breeds, setBreeds] = useState<BreedOption[]>([]);
   const [dogs, setDogs] = useState<Dog[]>([]);
   const [breedId, setBreedId] = useState("");
@@ -117,6 +164,15 @@ const AvailableDogs = ({ puppiesOnly = false }: AvailableDogsProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [breedError, setBreedError] = useState<string | null>(null);
+  const [interestDog, setInterestDog] = useState<Dog | null>(null);
+  const [interestFirstName, setInterestFirstName] = useState("");
+  const [interestLastName, setInterestLastName] = useState("");
+  const [interestPhone, setInterestPhone] = useState("");
+  const [interestEmail, setInterestEmail] = useState("");
+  const [interestStatus, setInterestStatus] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [interestMessage, setInterestMessage] = useState("");
 
   useEffect(() => {
     if (puppiesOnly) {
@@ -203,6 +259,72 @@ const AvailableDogs = ({ puppiesOnly = false }: AvailableDogsProps) => {
     setBreedId("");
     setSex("");
     setAge("");
+  };
+
+  const handleInterestSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    if (!interestDog) {
+      return;
+    }
+
+    event.preventDefault();
+    setInterestStatus("submitting");
+    setInterestMessage("");
+
+    try {
+      const submittedFirstName = interestFirstName.trim();
+      const submittedLastName = interestLastName.trim();
+      const submittedPhone = interestPhone.trim();
+
+      if (!submittedFirstName || !submittedLastName || !submittedPhone) {
+        throw new Error("Please enter your first name, last name, and phone number.");
+      }
+
+      const submittedFullName = `${submittedFirstName} ${submittedLastName}`.trim();
+      const description = `${submittedFullName} is interested in ${interestDog.name || "this dog"} ${interestDog.breed}`;
+
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          event_type: "interested_in_dog",
+          event_status: "requested",
+          start_date: new Date().toISOString().slice(0, 10),
+          details: {
+            dog_id: interestDog.id,
+            dog_name: interestDog.name,
+            dog_breed: interestDog.breed,
+            customer_first_name: submittedFirstName,
+            customer_last_name: submittedLastName,
+            customer_phone: submittedPhone,
+            customer_email: interestEmail.trim(),
+            description,
+          },
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to submit your interest request.");
+      }
+
+      setInterestStatus("success");
+      setInterestMessage("Thanks! We’ve saved your interest and will be in touch.");
+      setInterestFirstName("");
+      setInterestLastName("");
+      setInterestPhone("");
+      setInterestEmail("");
+      setInterestDog(null);
+    } catch (submitError) {
+      setInterestStatus("error");
+      setInterestMessage(
+        submitError instanceof Error
+          ? submitError.message
+          : "Something went wrong while submitting your interest.",
+      );
+    }
   };
 
   return (
@@ -326,10 +448,103 @@ const AvailableDogs = ({ puppiesOnly = false }: AvailableDogsProps) => {
           </p>
           <div className="available-dogs-grid">
             {dogs.map((dog) => (
-              <DogCard key={dog.id} dog={dog} />
+              <DogCard
+                key={dog.id}
+                dog={dog}
+                adminMode={adminMode}
+                onEditDog={onEditDog}
+                onDeleteDog={onDeleteDog}
+                onInterestClick={setInterestDog}
+              />
             ))}
           </div>
         </>
+      )}
+
+      {interestDog && (
+        <div className="interest-modal-backdrop" onClick={() => setInterestDog(null)}>
+          <div
+            className="interest-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="interest-dog-title"
+          >
+            <div className="interest-modal-header">
+              <h3 id="interest-dog-title">I’m interested in {interestDog.name || "this dog"}</h3>
+              <button
+                type="button"
+                className="interest-modal-close"
+                aria-label="Close interested form"
+                onClick={() => setInterestDog(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="interest-modal-copy">
+              {interestDog.name} · {interestDog.breed}
+            </p>
+
+            <form className="interest-form" onSubmit={handleInterestSubmit}>
+              <label>
+                <span>First name</span>
+                <input
+                  type="text"
+                  value={interestFirstName}
+                  onChange={(event) => setInterestFirstName(event.target.value)}
+                  placeholder="Your first name"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Last name</span>
+                <input
+                  type="text"
+                  value={interestLastName}
+                  onChange={(event) => setInterestLastName(event.target.value)}
+                  placeholder="Your last name"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Phone number</span>
+                <input
+                  type="tel"
+                  value={interestPhone}
+                  onChange={(event) => setInterestPhone(event.target.value)}
+                  placeholder="(555) 123-4567"
+                  required
+                />
+              </label>
+
+              <label>
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={interestEmail}
+                  onChange={(event) => setInterestEmail(event.target.value)}
+                  placeholder="you@example.com"
+                />
+              </label>
+
+              <button type="submit" disabled={interestStatus === "submitting"}>
+                {interestStatus === "submitting" ? "Submitting..." : "Submit interest"}
+              </button>
+
+              {interestMessage && (
+                <p
+                  className={`interest-form-message ${interestStatus}`}
+                  role="status"
+                >
+                  {interestMessage}
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
       )}
     </section>
   );

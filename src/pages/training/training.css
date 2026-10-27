@@ -4,27 +4,6 @@
     color: var(--page-charcoal);
 }
 
-.training-intro {
-    max-width: 850px;
-    margin: 0 auto;
-    padding: clamp(56px, 9vw, 104px) 8% clamp(40px, 7vw, 76px);
-    text-align: center;
-}
-
-.training-intro h2,
-.training-programs-heading h2 {
-    margin: 0 0 18px;
-    font-size: clamp(1.8rem, 4vw, 2.7rem);
-    line-height: 1.15;
-}
-
-.training-intro > p:last-child,
-.training-programs-heading > p:last-child {
-    margin: 0;
-    font-size: 1.05rem;
-    line-height: 1.75;
-}
-
 .training-steps {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
