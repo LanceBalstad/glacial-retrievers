@@ -68,10 +68,13 @@
     display: inline-block;
     margin-top: 28px;
     padding: 13px 20px;
+    border: none;
     background: var(--page-accent, #db5931);
     color: #fff;
+    font: inherit;
     font-weight: 700;
     text-decoration: none;
+    cursor: pointer;
     transition: background-color 0.2s ease;
 }
 

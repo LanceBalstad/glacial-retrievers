@@ -1,5 +1,6 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "../../assets/logo.jpg";
+import DogInterestModal from "../dogInterestModal/dogInterestModal.tsx";
 import "./availableDogs.css";
 
 interface BreedOption {
@@ -165,14 +166,6 @@ const AvailableDogs = ({
   const [error, setError] = useState<string | null>(null);
   const [breedError, setBreedError] = useState<string | null>(null);
   const [interestDog, setInterestDog] = useState<Dog | null>(null);
-  const [interestFirstName, setInterestFirstName] = useState("");
-  const [interestLastName, setInterestLastName] = useState("");
-  const [interestPhone, setInterestPhone] = useState("");
-  const [interestEmail, setInterestEmail] = useState("");
-  const [interestStatus, setInterestStatus] = useState<
-    "idle" | "submitting" | "success" | "error"
-  >("idle");
-  const [interestMessage, setInterestMessage] = useState("");
 
   useEffect(() => {
     if (puppiesOnly) {
@@ -259,72 +252,6 @@ const AvailableDogs = ({
     setBreedId("");
     setSex("");
     setAge("");
-  };
-
-  const handleInterestSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    if (!interestDog) {
-      return;
-    }
-
-    event.preventDefault();
-    setInterestStatus("submitting");
-    setInterestMessage("");
-
-    try {
-      const submittedFirstName = interestFirstName.trim();
-      const submittedLastName = interestLastName.trim();
-      const submittedPhone = interestPhone.trim();
-
-      if (!submittedFirstName || !submittedLastName || !submittedPhone) {
-        throw new Error("Please enter your first name, last name, and phone number.");
-      }
-
-      const submittedFullName = `${submittedFirstName} ${submittedLastName}`.trim();
-      const description = `${submittedFullName} is interested in ${interestDog.name || "this dog"} ${interestDog.breed}`;
-
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          event_type: "interested_in_dog",
-          event_status: "requested",
-          start_date: new Date().toISOString().slice(0, 10),
-          details: {
-            dog_id: interestDog.id,
-            dog_name: interestDog.name,
-            dog_breed: interestDog.breed,
-            customer_first_name: submittedFirstName,
-            customer_last_name: submittedLastName,
-            customer_phone: submittedPhone,
-            customer_email: interestEmail.trim(),
-            description,
-          },
-        }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to submit your interest request.");
-      }
-
-      setInterestStatus("success");
-      setInterestMessage("Thanks! We’ve saved your interest and will be in touch.");
-      setInterestFirstName("");
-      setInterestLastName("");
-      setInterestPhone("");
-      setInterestEmail("");
-      setInterestDog(null);
-    } catch (submitError) {
-      setInterestStatus("error");
-      setInterestMessage(
-        submitError instanceof Error
-          ? submitError.message
-          : "Something went wrong while submitting your interest.",
-      );
-    }
   };
 
   return (
@@ -462,89 +389,7 @@ const AvailableDogs = ({
       )}
 
       {interestDog && (
-        <div className="interest-modal-backdrop" onClick={() => setInterestDog(null)}>
-          <div
-            className="interest-modal"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="interest-dog-title"
-          >
-            <div className="interest-modal-header">
-              <h3 id="interest-dog-title">I’m interested in {interestDog.name || "this dog"}</h3>
-              <button
-                type="button"
-                className="interest-modal-close"
-                aria-label="Close interested form"
-                onClick={() => setInterestDog(null)}
-              >
-                ×
-              </button>
-            </div>
-
-            <p className="interest-modal-copy">
-              {interestDog.name} · {interestDog.breed}
-            </p>
-
-            <form className="interest-form" onSubmit={handleInterestSubmit}>
-              <label>
-                <span>First name</span>
-                <input
-                  type="text"
-                  value={interestFirstName}
-                  onChange={(event) => setInterestFirstName(event.target.value)}
-                  placeholder="Your first name"
-                  required
-                />
-              </label>
-
-              <label>
-                <span>Last name</span>
-                <input
-                  type="text"
-                  value={interestLastName}
-                  onChange={(event) => setInterestLastName(event.target.value)}
-                  placeholder="Your last name"
-                  required
-                />
-              </label>
-
-              <label>
-                <span>Phone number</span>
-                <input
-                  type="tel"
-                  value={interestPhone}
-                  onChange={(event) => setInterestPhone(event.target.value)}
-                  placeholder="(555) 123-4567"
-                  required
-                />
-              </label>
-
-              <label>
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={interestEmail}
-                  onChange={(event) => setInterestEmail(event.target.value)}
-                  placeholder="you@example.com"
-                />
-              </label>
-
-              <button type="submit" disabled={interestStatus === "submitting"}>
-                {interestStatus === "submitting" ? "Submitting..." : "Submit interest"}
-              </button>
-
-              {interestMessage && (
-                <p
-                  className={`interest-form-message ${interestStatus}`}
-                  role="status"
-                >
-                  {interestMessage}
-                </p>
-              )}
-            </form>
-          </div>
-        </div>
+        <DogInterestModal dog={interestDog} onClose={() => setInterestDog(null)} />
       )}
     </section>
   );

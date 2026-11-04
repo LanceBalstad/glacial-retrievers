@@ -5,6 +5,7 @@ import {
   isAllowedAdminEmail,
   subscribeToAuth,
 } from "../../lib/firebase";
+import { adminFetch } from "../../lib/adminApi";
 import "./adminDogs.css";
 
 interface DogFormState {
@@ -57,7 +58,7 @@ const AdminDogs = () => {
     const loadDropdowns = async () => {
       try {
         const [statusResponse, breedResponse] = await Promise.all([
-          fetch("/api/admin/dog-statuses"),
+          adminFetch("/api/admin/dog-statuses"),
           fetch("/api/dog-breeds"),
         ]);
 
@@ -153,7 +154,7 @@ const AdminDogs = () => {
         description: dogForm.description.trim() || null,
       };
 
-      const response = await fetch(
+      const response = await adminFetch(
         editingDogId ? `/api/admin/dogs/${editingDogId}` : "/api/admin/dogs",
         {
           method: editingDogId ? "PUT" : "POST",
@@ -193,7 +194,7 @@ const AdminDogs = () => {
     }
 
     try {
-      const response = await fetch(`/api/admin/dogs/${dogId}`, {
+      const response = await adminFetch(`/api/admin/dogs/${dogId}`, {
         method: "DELETE",
       });
 

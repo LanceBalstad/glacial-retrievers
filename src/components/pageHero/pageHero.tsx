@@ -7,7 +7,9 @@ interface PageHeroProps {
   title: string;
   description: string;
   linkText: string;
-  linkHref: string;
+  linkHref?: string;
+  // When provided, the call to action renders as a button (e.g. to open a modal).
+  onLinkClick?: () => void;
 }
 
 const PageHero = ({
@@ -18,6 +20,7 @@ const PageHero = ({
   description,
   linkText,
   linkHref,
+  onLinkClick,
 }: PageHeroProps) => (
   <section className="content-hero">
     <img className="content-hero-image" src={image} alt={imageAlt} />
@@ -26,9 +29,15 @@ const PageHero = ({
       <p className="content-eyebrow">{eyebrow}</p>
       <h1>{title}</h1>
       <p className="content-hero-description">{description}</p>
-      <a className="content-hero-link" href={linkHref}>
-        {linkText}
-      </a>
+      {onLinkClick ? (
+        <button type="button" className="content-hero-link" onClick={onLinkClick}>
+          {linkText}
+        </button>
+      ) : (
+        <a className="content-hero-link" href={linkHref}>
+          {linkText}
+        </a>
+      )}
     </div>
   </section>
 );

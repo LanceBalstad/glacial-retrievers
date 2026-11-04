@@ -1,4 +1,6 @@
+import { useState } from "react";
 import boardingImage from "../../assets/boadingImage.jpg";
+import BoardingBookingModal from "../../components/boardingBookingModal/boardingBookingModal.tsx";
 import PageFaq, {
   type PageQuestion,
 } from "../../components/pageFaq/pageFaq.tsx";
@@ -39,6 +41,8 @@ const boardingQuestions: PageQuestion[] = [
 ];
 
 const Boarding = () => {
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+
   return (
     <main className="boarding-page">
       <PageHero
@@ -48,7 +52,7 @@ const Boarding = () => {
         title="A comfortable stay for your dog"
         description="Thoughtful boarding starts with understanding your dog’s routine and helping you feel prepared for their stay."
         linkText="Book Now"
-        linkHref="/boarding-booking"
+        onLinkClick={() => setIsBookingOpen(true)}
       />
 
       <section className="boarding-intro" id="boarding-details">
@@ -120,6 +124,9 @@ const Boarding = () => {
         questions={boardingQuestions}
       />
 
+      {isBookingOpen && (
+        <BoardingBookingModal onClose={() => setIsBookingOpen(false)} />
+      )}
     </main>
   );
 };

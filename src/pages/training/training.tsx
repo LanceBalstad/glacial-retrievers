@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import trainingImage from "../../assets/trainingImage.jpg";
+import TrainingBookingModal from "../../components/trainingBookingModal/trainingBookingModal.tsx";
 import PageFaq, {
   type PageQuestion,
 } from "../../components/pageFaq/pageFaq.tsx";
@@ -94,6 +95,7 @@ const trainingQuestions: PageQuestion[] = [
 
 const Training = () => {
   const [selectedTrack, setSelectedTrack] = useState(trainingTracks[0].id);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeTrack =
     trainingTracks.find((track) => track.id === selectedTrack) ??
@@ -133,7 +135,7 @@ const Training = () => {
         title="Gun Dog Training"
         description="Thoughtful, practical training that helps you and your dog build skills together."
         linkText="Book Training"
-        linkHref="/training-booking"
+        onLinkClick={() => setIsBookingOpen(true)}
       />
 
       <section className="training-programs" id="training-programs">
@@ -197,33 +199,6 @@ const Training = () => {
         </p>
       </section>
 
-      {/* <section className="training-steps" aria-label="Our training approach">
-        <article className="training-step">
-          <span className="training-step-number">01</span>
-          <h3>Talk through your goals</h3>
-          <p>
-            Tell us about your dog, their experience, and the skills you want to
-            develop.
-          </p>
-        </article>
-        <article className="training-step">
-          <span className="training-step-number">02</span>
-          <h3>Build a suitable plan</h3>
-          <p>
-            We’ll discuss timing, training priorities, and what is appropriate
-            for your dog.
-          </p>
-        </article>
-        <article className="training-step">
-          <span className="training-step-number">03</span>
-          <h3>Keep you involved</h3>
-          <p>
-            Stay in touch with the trainer and learn how to carry your dog’s
-            progress forward at home.
-          </p>
-        </article>
-      </section> */}
-
       <PageFaq
         id="training-faq"
         eyebrow="Good to know"
@@ -232,6 +207,9 @@ const Training = () => {
         questions={trainingQuestions}
       />
 
+      {isBookingOpen && (
+        <TrainingBookingModal onClose={() => setIsBookingOpen(false)} />
+      )}
     </main>
   );
 };

@@ -62,3 +62,13 @@ export const subscribeToAuth = (callback: (user: User | null) => void) => {
 
   return onAuthStateChanged(auth, callback);
 };
+
+// Waits for a restored session on page load, then returns a fresh ID token.
+export const getIdToken = async (): Promise<string | null> => {
+  if (!auth) {
+    return null;
+  }
+
+  await auth.authStateReady();
+  return auth.currentUser ? auth.currentUser.getIdToken() : null;
+};

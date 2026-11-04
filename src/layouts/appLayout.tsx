@@ -20,9 +20,11 @@ const footerContentByPath: Record<string, FooterContent> = {
   "/puppies": defaultFooterContent,
   "/all-dogs": defaultFooterContent,
   "/about": defaultFooterContent,
-  "/admin": defaultFooterContent,
-  "/admin-login": defaultFooterContent,
 };
+
+// Covers /admin, /admin-login, and every /admin/* page.
+const isAdminPath = (pathname: string) =>
+  pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/admin-");
 
 const AppLayout = () => {
   const { pathname } = useLocation();
@@ -40,7 +42,7 @@ const AppLayout = () => {
       <div className="contentWrapper">
         <Outlet />
       </div>
-      <Footer content={footerContent} />
+      {!isAdminPath(pathname) && <Footer content={footerContent} />}
     </div>
   );
 };

@@ -1,0 +1,45 @@
+.form-submit {
+    min-height: 46px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 999px;
+    background: #db5931;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    transition: background-color 0.2s ease;
+}
+
+.form-submit:hover {
+    background: #b94421;
+}
+
+.form-submit:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.form-status {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.form-status.success {
+    background: #edf7ed;
+    color: #1f5636;
+}
+
+.form-status.error {
+    background: #fff1f0;
+    color: #9a2f2f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form-submit {
+        transition: none;
+    }
+}

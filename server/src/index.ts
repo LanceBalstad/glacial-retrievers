@@ -1,10 +1,29 @@
 
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import pg from "pg";
 
 dotenv.config();
+// The Firebase project and allowed admin email are shared with the frontend,
+// so reuse the root .env values instead of duplicating them here.
+dotenv.config({ path: new URL("../../.env", import.meta.url) });
+
+const firebaseProjectId = process.env.VITE_FIREBASE_PROJECT_ID;
+const allowedAdminEmail = process.env.VITE_ALLOWED_ADMIN_EMAIL?.trim().toLowerCase();
+
+if (!firebaseProjectId || !allowedAdminEmail) {
+  console.warn(
+    "VITE_FIREBASE_PROJECT_ID or VITE_ALLOWED_ADMIN_EMAIL is missing; admin API routes will reject all requests.",
+  );
+}
+
+// Verifying ID tokens only needs the project id, not a service account.
+const firebaseAdminAuth = firebaseProjectId
+  ? getAuth(initializeApp({ projectId: firebaseProjectId }))
+  : null;
 
 const app = express();
 const { Pool } = pg;
@@ -13,8 +32,34 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Requires a Firebase ID token (Authorization: Bearer <token>) belonging to the
+// configured admin email.
+const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  const header = req.headers.authorization ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+
+  if (!token || !firebaseAdminAuth || !allowedAdminEmail) {
+    res.status(401).json({ error: "Admin sign-in required." });
+    return;
+  }
+
+  try {
+    const decoded = await firebaseAdminAuth.verifyIdToken(token);
+
+    if (decoded.email?.trim().toLowerCase() !== allowedAdminEmail) {
+      res.status(403).json({ error: "This account is not allowed to use the admin tools." });
+      return;
+    }
+
+    next();
+  } catch {
+    res.status(401).json({ error: "Your admin session has expired. Please sign in again." });
+  }
+};
+
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
+app.use("/api/admin", requireAdmin);
 
 app.get("/api/health", async (_req, res) => {
   try {
@@ -221,7 +266,7 @@ app.get("/api/admin/dogs", async (_req, res) => {
   }
 });
 
-app.get("/api/events", async (_req, res) => {
+app.get("/api/events", requireAdmin, async (_req, res) => {
   try {
     const result = await pool.query(
       `SELECT
@@ -230,8 +275,8 @@ app.get("/api/events", async (_req, res) => {
          e.last_name,
          e.phone,
          e.email,
-         e.start_date,
-         e.end_date,
+         to_char(e.start_date, 'YYYY-MM-DD') AS start_date,
+         to_char(e.end_date, 'YYYY-MM-DD') AS end_date,
          e.details,
          e.created_at,
          e.updated_at,
@@ -255,7 +300,7 @@ app.get("/api/events", async (_req, res) => {
   }
 });
 
-app.patch("/api/events/:id/status", async (req, res) => {
+app.patch("/api/events/:id/status", requireAdmin, async (req, res) => {
   try {
     const eventId = Number(req.params.id);
     const requestedStatus =
@@ -287,13 +332,48 @@ app.patch("/api/events/:id/status", async (req, res) => {
       return;
     }
 
+    // Dates are optional so the admin can adjust them when marking a booking
+    // (the dates agreed on the phone may differ from the inquiry).
+    const isISODate = (value: unknown): value is string =>
+      typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+    const hasStartDate = req.body?.start_date !== undefined;
+    const hasEndDate = req.body?.end_date !== undefined;
+    const startDate = req.body?.start_date;
+    const endDate = req.body?.end_date;
+
+    // null clears the date (used when undoing a scheduled dog pickup).
+    if (hasStartDate && startDate !== null && !isISODate(startDate)) {
+      res.status(400).json({ error: "start_date must be YYYY-MM-DD or null." });
+      return;
+    }
+
+    if (hasEndDate && endDate !== null && !isISODate(endDate)) {
+      res.status(400).json({ error: "end_date must be YYYY-MM-DD or null." });
+      return;
+    }
+
+    if (isISODate(startDate) && isISODate(endDate) && endDate < startDate) {
+      res.status(400).json({ error: "end_date cannot be before start_date." });
+      return;
+    }
+
     const result = await pool.query(
       `UPDATE public.events
        SET event_status_id = $1,
+           start_date = CASE WHEN $3 THEN $4::date ELSE start_date END,
+           end_date = CASE WHEN $5 THEN $6::date ELSE end_date END,
            updated_at = NOW()
        WHERE id = $2
-       RETURNING *`,
-      [statusId, eventId],
+       RETURNING id`,
+      [
+        statusId,
+        eventId,
+        hasStartDate,
+        hasStartDate ? startDate : null,
+        hasEndDate,
+        hasEndDate ? endDate : null,
+      ],
     );
 
     if (result.rowCount === 0) {
@@ -334,25 +414,11 @@ const normalizeEventPayload = (body: unknown) => {
     );
   }
 
-  const rawStatus =
-    typeof record.event_status === "string"
-      ? record.event_status
-      : typeof record.status === "string"
-        ? record.status
-        : "requested";
-
-  const eventStatus = rawStatus.trim().toLowerCase();
-
-  if (!"requested,confirmed,completed,canceled".split(",").includes(eventStatus)) {
-    throw new Error(
-      "event_status must be one of: requested, confirmed, completed, canceled.",
-    );
-  }
-
   const startDate =
     typeof record.start_date === "string" ? record.start_date.trim() : "";
 
-  if (!startDate) {
+  // Dog interest has no date until the admin schedules a pickup.
+  if (!startDate && eventType !== "interested_in_dog") {
     throw new Error("start_date is required.");
   }
 
@@ -376,8 +442,9 @@ const normalizeEventPayload = (body: unknown) => {
 
   return {
     event_type: eventType,
-    event_status: eventStatus,
-    start_date: startDate,
+    // Public submissions are always inquiries; only the admin can confirm them.
+    event_status: "requested",
+    start_date: startDate || null,
     end_date: endDate,
     details,
   };
@@ -440,11 +507,11 @@ app.post("/api/events", async (req, res) => {
           ? details.email.trim()
           : "";
 
-    const normalizedPhone = phone.trim();
+    const normalizedPhone = phone.trim() || null;
     const normalizedEmail = email || null;
 
-    if (!firstName || !lastName || !normalizedPhone) {
-      throw new Error("first_name, last_name, and phone are required for each event.");
+    if (!firstName || !lastName || !normalizedEmail) {
+      throw new Error("first_name, last_name, and email are required for each event.");
     }
 
     const result = await pool.query(
@@ -483,6 +550,191 @@ app.post("/api/events", async (req, res) => {
       error instanceof Error ? error.message : "Could not create event.";
     console.error("Failed to create event:", error);
     res.status(400).json({ error: message });
+  }
+});
+
+// Calendar entries the admin adds or edits by hand. Bookings come in by phone,
+// so only a name is required; email and phone are optional here.
+const normalizeAdminEventBody = (body: unknown) => {
+  if (!body || typeof body !== "object") {
+    throw new Error("Event payload must be an object.");
+  }
+
+  const record = body as Record<string, unknown>;
+  const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+  const isISODate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+  const eventType = text(record.event_type).toLowerCase();
+
+  if (
+    ![
+      "gun_dog_training",
+      "house_training",
+      "basic_obedience_training",
+      "interested_in_dog",
+      "dog_boarding",
+    ].includes(eventType)
+  ) {
+    throw new Error(
+      "event_type must be one of: gun_dog_training, house_training, basic_obedience_training, interested_in_dog, dog_boarding.",
+    );
+  }
+
+  const firstName = text(record.first_name);
+  const lastName = text(record.last_name);
+
+  if (!firstName || !lastName) {
+    throw new Error("first_name and last_name are required.");
+  }
+
+  const startDate = text(record.start_date);
+
+  if (!isISODate(startDate)) {
+    throw new Error("start_date is required (YYYY-MM-DD).");
+  }
+
+  const rawEndDate = text(record.end_date);
+
+  if (rawEndDate && !isISODate(rawEndDate)) {
+    throw new Error("end_date must be YYYY-MM-DD.");
+  }
+
+  // Only boarding spans several days.
+  const endDate = eventType === "dog_boarding" ? rawEndDate || startDate : null;
+
+  if (endDate && endDate < startDate) {
+    throw new Error("end_date cannot be before start_date.");
+  }
+
+  const details =
+    record.details && typeof record.details === "object" && !Array.isArray(record.details)
+      ? (record.details as Record<string, unknown>)
+      : {};
+
+  const phone = text(record.phone) || null;
+  const email = text(record.email) || null;
+
+  return {
+    eventType,
+    firstName,
+    lastName,
+    phone,
+    email,
+    startDate,
+    endDate,
+    // Keep the owner_* detail keys in sync with the columns; the admin UI reads both.
+    details: {
+      ...details,
+      owner_first_name: firstName,
+      owner_last_name: lastName,
+      owner_phone: phone ?? "",
+      owner_email: email ?? "",
+    },
+  };
+};
+
+const lookupId = async (table: "event_types" | "event_status", name: string) => {
+  const result = await pool.query<{ id: number }>(
+    `SELECT id FROM public.${table} WHERE name = $1`,
+    [name],
+  );
+  return result.rows[0]?.id;
+};
+
+app.post("/api/admin/events", async (req, res) => {
+  try {
+    const event = normalizeAdminEventBody(req.body);
+    const eventTypeId = await lookupId("event_types", event.eventType);
+    const confirmedStatusId = await lookupId("event_status", "confirmed");
+
+    if (eventTypeId === undefined || confirmedStatusId === undefined) {
+      res.status(400).json({ error: "Unknown event type or status." });
+      return;
+    }
+
+    const result = await pool.query(
+      `INSERT INTO public.events (
+         event_type_id, event_status_id, first_name, last_name, phone, email,
+         start_date, end_date, details, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8::date, $9::jsonb, NOW(), NOW())
+       RETURNING id`,
+      [
+        eventTypeId,
+        confirmedStatusId,
+        event.firstName,
+        event.lastName,
+        event.phone,
+        event.email,
+        event.startDate,
+        event.endDate,
+        JSON.stringify(event.details),
+      ],
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Failed to add calendar event:", error);
+    res.status(400).json({
+      error: error instanceof Error ? error.message : "Could not add the event.",
+    });
+  }
+});
+
+app.put("/api/admin/events/:id", async (req, res) => {
+  try {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      res.status(400).json({ error: "A valid event id is required." });
+      return;
+    }
+
+    const event = normalizeAdminEventBody(req.body);
+    const eventTypeId = await lookupId("event_types", event.eventType);
+
+    if (eventTypeId === undefined) {
+      res.status(400).json({ error: "Unknown event type." });
+      return;
+    }
+
+    // Status is left as-is; it is changed through PATCH /api/events/:id/status.
+    const result = await pool.query(
+      `UPDATE public.events
+       SET event_type_id = $1,
+           first_name = $2,
+           last_name = $3,
+           phone = $4,
+           email = $5,
+           start_date = $6::date,
+           end_date = $7::date,
+           details = $8::jsonb,
+           updated_at = NOW()
+       WHERE id = $9
+       RETURNING id`,
+      [
+        eventTypeId,
+        event.firstName,
+        event.lastName,
+        event.phone,
+        event.email,
+        event.startDate,
+        event.endDate,
+        JSON.stringify(event.details),
+        eventId,
+      ],
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: "Event not found." });
+      return;
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Failed to update calendar event:", error);
+    res.status(400).json({
+      error: error instanceof Error ? error.message : "Could not update the event.",
+    });
   }
 });
 

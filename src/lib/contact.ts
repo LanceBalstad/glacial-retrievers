@@ -1,0 +1,2 @@
+export const BUSINESS_PHONE_DISPLAY = "(218) 935-0931";
+export const BUSINESS_PHONE_HREF = "tel:+12189350931";

@@ -1,23 +1,24 @@
 import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
-import "./boardingBooking.css";
+import FormSubmit from "../formSubmit/formSubmit.tsx";
+import OwnerContactFields, {
+  emptyOwnerContact,
+  type OwnerContactValues,
+} from "../ownerContactFields/ownerContactFields.tsx";
+import RequiredMark from "../requiredMark/requiredMark.tsx";
+import InquiryModalLayout from "../../layouts/inquiryModalLayout.tsx";
+import useEventRequest from "../../lib/useEventRequest";
+import "./boardingBookingModal.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api";
-
-type DogEntry = {
-  name: string;
-  breed: string;
-  age: string;
-};
-
-type BookingFormState = {
+type BookingFormState = OwnerContactValues & {
   startDate: string;
   endDate: string;
-  ownerFirstName: string;
-  ownerLastName: string;
-  ownerEmail: string;
-  ownerPhone: string;
 };
+
+interface BoardingBookingModalProps {
+  onClose: () => void;
+}
+
+const MAX_DOGS = 10;
 
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const monthNames = [
@@ -35,12 +36,6 @@ const monthNames = [
   "December",
 ];
 
-const createDogEntry = (): DogEntry => ({
-  name: "",
-  breed: "",
-  age: "",
-});
-
 const toISODate = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -55,12 +50,9 @@ const addDays = (date: Date, days: number) => {
 };
 
 const initialFormState: BookingFormState = {
+  ...emptyOwnerContact,
   startDate: "",
   endDate: "",
-  ownerFirstName: "",
-  ownerLastName: "",
-  ownerEmail: "",
-  ownerPhone: "",
 };
 
 const formatDateForDisplay = (value: string) => {
@@ -276,13 +268,11 @@ const DateRangePicker = ({ startDate, endDate, onChange }: DateRangePickerProps)
   );
 };
 
-const BoardingBooking = () => {
+const BoardingBookingModal = ({ onClose }: BoardingBookingModalProps) => {
   const [formData, setFormData] = useState<BookingFormState>(initialFormState);
-  const [dogs, setDogs] = useState<DogEntry[]>([createDogEntry()]);
   const [dogCountInput, setDogCountInput] = useState("1");
   const [dogCountError, setDogCountError] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const { status, message, submit, fail } = useEventRequest();
 
   const syncDogCount = (nextValue: string) => {
     setDogCountInput(nextValue);
@@ -294,20 +284,12 @@ const BoardingBooking = () => {
 
     const parsed = Number(nextValue);
 
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 12) {
-      setDogCountError("Please enter a number between 1 and 12.");
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_DOGS) {
+      setDogCountError(`Please enter a number between 1 and ${MAX_DOGS}.`);
       return;
     }
 
     setDogCountError("");
-    const nextCount = Math.max(1, parsed);
-
-    setDogs((current) => {
-      const nextDogs = Array.from({ length: nextCount }, (_, index) =>
-        current[index] ?? createDogEntry(),
-      );
-      return nextDogs;
-    });
   };
 
   const handleChange = (
@@ -315,18 +297,6 @@ const BoardingBooking = () => {
   ) => {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
-  };
-
-  const handleDogChange = (
-    index: number,
-    field: keyof DogEntry,
-    value: string,
-  ) => {
-    setDogs((current) =>
-      current.map((dog, dogIndex) =>
-        dogIndex === index ? { ...dog, [field]: value } : dog,
-      ),
-    );
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -339,219 +309,103 @@ const BoardingBooking = () => {
 
     const parsedDogCount = Number(dogCountInput);
 
-    if (!Number.isInteger(parsedDogCount) || parsedDogCount < 1 || parsedDogCount > 12) {
-      setDogCountError("Please enter a number between 1 and 12.");
+    if (!Number.isInteger(parsedDogCount) || parsedDogCount < 1 || parsedDogCount > MAX_DOGS) {
+      setDogCountError(`Please enter a number between 1 and ${MAX_DOGS}.`);
       return;
     }
 
-    setStatus("submitting");
-    setMessage("");
+    if (!formData.startDate) {
+      fail("Please choose your dog's stay dates.");
+      return;
+    }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    const created = await submit(
+      {
+        event_type: "dog_boarding",
+        event_status: "requested",
+        start_date: formData.startDate,
+        end_date: formData.endDate || null,
+        details: {
+          owner_first_name: formData.ownerFirstName,
+          owner_last_name: formData.ownerLastName,
+          owner_email: formData.ownerEmail,
+          owner_phone: formData.ownerPhone,
+          dog_count: parsedDogCount,
         },
-        body: JSON.stringify({
-          event_type: "dog_boarding",
-          event_status: "requested",
-          start_date: formData.startDate,
-          end_date: formData.endDate || null,
-          details: {
-            owner_first_name: formData.ownerFirstName,
-            owner_last_name: formData.ownerLastName,
-            owner_email: formData.ownerEmail,
-            owner_phone: formData.ownerPhone,
-            dog_count: parsedDogCount,
-            dogs: dogs.slice(0, parsedDogCount).map((dog) => ({
-              name: dog.name,
-              breed: dog.breed,
-              age: dog.age,
-            })),
-          },
-        }),
-      });
+      },
+      {
+        success: "Thanks! Your boarding inquiry has been sent. We’ll reach out to follow up.",
+        error: "Could not send the boarding inquiry.",
+      },
+    );
 
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Could not create the boarding request.");
-      }
-
-      setStatus("success");
-      setMessage("Your boarding request has been added. We’ll review it and reach out soon.");
+    if (created) {
       setFormData(initialFormState);
       setDogCountInput("1");
       setDogCountError("");
-      setDogs([createDogEntry()]);
-    } catch (error) {
-      setStatus("error");
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while creating your boarding request.",
-      );
     }
   };
 
   return (
-    <main className="boarding-booking-page">
-      <section className="booking-shell">
-        <div className="booking-copy">
-          <p className="booking-eyebrow">Boarding request</p>
-          <h1>Book a stay</h1>
-          <p>
-            Tell us when you’d like your dogs to stay with us and share the details we need to
-            plan their care.
+    <InquiryModalLayout
+      eyebrow="Boarding"
+      title="Boarding inquiry"
+      size="wide"
+      onClose={onClose}
+    >
+      <form className="modal-form" onSubmit={handleSubmit}>
+        <div className="date-range-section">
+          <p className="section-label">
+            Stay dates
+            <RequiredMark />
           </p>
+          <DateRangePicker
+            startDate={formData.startDate}
+            endDate={formData.endDate}
+            onChange={(startDate, endDate) => {
+              setFormData((current) => ({
+                ...current,
+                startDate,
+                endDate,
+              }));
+            }}
+          />
         </div>
 
-        <form className="booking-form" onSubmit={handleSubmit}>
-          <div className="date-range-section">
-            <p className="section-label">Stay dates</p>
-            <DateRangePicker
-              startDate={formData.startDate}
-              endDate={formData.endDate}
-              onChange={(startDate, endDate) => {
-                setFormData((current) => ({
-                  ...current,
-                  startDate,
-                  endDate,
-                }));
+        <OwnerContactFields values={formData} onChange={handleChange} />
+
+        <div className="count-row">
+          <label>
+            <span>
+              How many dogs?
+              <RequiredMark />
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={MAX_DOGS}
+              required
+              value={dogCountInput}
+              onChange={(event) => syncDogCount(event.target.value)}
+              onBlur={() => {
+                if (dogCountInput.trim() === "") {
+                  setDogCountError("Please enter how many dogs are staying.");
+                }
               }}
             />
-          </div>
+          </label>
+        </div>
 
-          <div className="field-row compact-row">
-            <label>
-              First name
-              <input
-                type="text"
-                name="ownerFirstName"
-                value={formData.ownerFirstName}
-                onChange={handleChange}
-                placeholder="Your first name"
-                required
-              />
-            </label>
+        {dogCountError ? <p className="count-error">{dogCountError}</p> : null}
 
-            <label>
-              Last name
-              <input
-                type="text"
-                name="ownerLastName"
-                value={formData.ownerLastName}
-                onChange={handleChange}
-                placeholder="Your last name"
-                required
-              />
-            </label>
-          </div>
-
-          <div className="field-row compact-row">
-            <label>
-              Phone number
-              <input
-                type="tel"
-                name="ownerPhone"
-                value={formData.ownerPhone}
-                onChange={handleChange}
-                placeholder="(555) 123-4567"
-                required
-              />
-            </label>
-
-            <label>
-              Email
-              <input
-                type="email"
-                name="ownerEmail"
-                value={formData.ownerEmail}
-                onChange={handleChange}
-                placeholder="you@example.com"
-              />
-            </label>
-          </div>
-
-          <div className="count-row">
-            <label>
-              How many dogs?
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={dogCountInput}
-                onChange={(event) => syncDogCount(event.target.value)}
-                onBlur={() => {
-                  if (dogCountInput.trim() === "") {
-                    setDogCountError("Please enter how many dogs are staying.");
-                  }
-                }}
-              />
-            </label>
-          </div>
-
-          {dogCountError ? <p className="count-error">{dogCountError}</p> : null}
-
-          {dogs.map((dog, index) => (
-            <div key={`dog-${index}`} className="dog-card">
-              <div className="dog-card-header">
-                <h3>Dog {index + 1}</h3>
-              </div>
-
-              <div className="field-row compact-row">
-                <label>
-                  Dog name
-                  <input
-                    type="text"
-                    value={dog.name}
-                    onChange={(event) =>
-                      handleDogChange(index, "name", event.target.value)
-                    }
-                    placeholder="Dog name"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Breed
-                  <input
-                    type="text"
-                    value={dog.breed}
-                    onChange={(event) =>
-                      handleDogChange(index, "breed", event.target.value)
-                    }
-                    placeholder="Breed"
-                  />
-                </label>
-              </div>
-
-              <label>
-                Age
-                <input
-                  type="text"
-                  value={dog.age}
-                  onChange={(event) => handleDogChange(index, "age", event.target.value)}
-                  placeholder="For example: 2 years"
-                />
-              </label>
-            </div>
-          ))}
-
-          <button type="submit" className="booking-submit" disabled={status === "submitting"}>
-            {status === "submitting" ? "Submitting..." : "Submit boarding request"}
-          </button>
-
-          {message ? (
-            <p className={`booking-status ${status}`} role="status">
-              {message}
-            </p>
-          ) : null}
-        </form>
-      </section>
-    </main>
+        <FormSubmit
+          label="Send boarding inquiry"
+          status={status}
+          message={message}
+        />
+      </form>
+    </InquiryModalLayout>
   );
 };
 
-export default BoardingBooking;
+export default BoardingBookingModal;
