@@ -272,7 +272,7 @@ const BoardingBookingModal = ({ onClose }: BoardingBookingModalProps) => {
   const [formData, setFormData] = useState<BookingFormState>(initialFormState);
   const [dogCountInput, setDogCountInput] = useState("1");
   const [dogCountError, setDogCountError] = useState("");
-  const { status, message, submit, fail } = useEventRequest();
+  const { status, message, submit, fail, reset } = useEventRequest();
 
   const syncDogCount = (nextValue: string) => {
     setDogCountInput(nextValue);
@@ -352,6 +352,8 @@ const BoardingBookingModal = ({ onClose }: BoardingBookingModalProps) => {
       title="Boarding inquiry"
       size="wide"
       onClose={onClose}
+      successMessage={status === "success" ? message : null}
+      onDismissSuccess={reset}
     >
       <form className="modal-form" onSubmit={handleSubmit}>
         <div className="date-range-section">

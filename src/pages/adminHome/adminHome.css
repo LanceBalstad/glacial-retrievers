@@ -751,6 +751,24 @@
   font-size: 0.85rem;
 }
 
+.ah-release-choice {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.ah-release-choice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ah-field-hint {
+  color: var(--ah-muted);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
 .ah-push-left {
   margin-right: auto;
 }

@@ -34,12 +34,20 @@ type EventRow = {
   event_type: string;
   event_status: EventStatus;
   details: Record<string, unknown>;
+  // Linked dog for interested_in_dog events, joined from the dogs table.
+  dog_id: number | null;
+  dog_name: string | null;
+  dog_breed: string | null;
+  // Linked dog's current dog_status name, e.g. "reserved" or "sold".
+  dog_status: string | null;
 };
 
 type StatusUpdate = {
   status: EventStatus;
   start_date?: string | null;
   end_date?: string | null;
+  // true leaves the linked dog's status unchanged ("Keep reserved").
+  keep_dog_status?: boolean;
 };
 
 // Body for POST /api/admin/events and PUT /api/admin/events/:id.
@@ -51,6 +59,7 @@ type AdminEventPayload = {
   email: string;
   start_date: string;
   end_date: string | null;
+  dog_id: number | null;
   details: Record<string, unknown>;
 };
 
@@ -261,6 +270,34 @@ const getMessage = (event: EventRow) => getDetail(event.details, getMessageKeys(
 const getMessageKey = (event: EventRow) =>
   getMessageKeys(event).find((key) => getDetail(event.details, [key])) ?? "notes";
 
+// The dog on a pickup comes from events.dog_id; the details snapshot is only a
+// fallback for older rows or a dog that has since been deleted.
+const getPickupDog = (event: EventRow) =>
+  event.dog_id !== null && event.dog_breed !== null
+    ? { name: event.dog_name, breed: event.dog_breed }
+    : {
+        name: getDetail(event.details, ["dog_name"]),
+        breed: getDetail(event.details, ["dog_breed"]),
+      };
+
+// Canceling a pickup frees its linked dog (the server sets it back to available).
+// Returns null when there is no linked dog, e.g. it was deleted.
+const getReleasedDogName = (event: EventRow) =>
+  getCategory(event.event_type) === "interest" && event.dog_id !== null
+    ? getPickupDog(event).name || "This dog"
+    : null;
+
+// Toast suffix describing what happened to the pickup's dog.
+const dogOutcomeMessage = (event: EventRow, keepDogReserved: boolean) => {
+  const dogName = getReleasedDogName(event);
+  if (!dogName) {
+    return "";
+  }
+  return keepDogReserved
+    ? ` ${dogName} is still ${event.dog_status === "sold" ? "sold" : "reserved"}.`
+    : ` ${dogName} is available again.`;
+};
+
 // Short facts shown on cards, e.g. "2 dogs" or "Lab · 18 months · Male".
 const getFacts = (event: EventRow): string[] => {
   const category = getCategory(event.event_type);
@@ -282,8 +319,9 @@ const getFacts = (event: EventRow): string[] => {
   }
 
   if (category === "interest") {
+    const dog = getPickupDog(event);
     return [
-      [getDetail(event.details, ["dog_name"]), getDetail(event.details, ["dog_breed"])]
+      [dog.name, dog.breed]
         .filter(Boolean)
         .join(" · ") || "Available dog",
     ];
@@ -312,11 +350,79 @@ const toAdminPayload = (event: EventRow): AdminEventPayload => {
     email: contact.email ?? "",
     start_date: event.start_date ?? "",
     end_date: event.end_date,
+    dog_id: event.dog_id,
     details: event.details,
   };
 };
 
 /* ---------- Small presentational pieces ---------- */
+
+interface DogReleaseChoiceProps {
+  // e.g. "Mark as not booked?" or "Remove this booking from the calendar?"
+  prompt: string;
+  // Linked dog's name, or null when there is no dog to release.
+  dogName: string | null;
+  // Linked dog's current status; "sold" makes the keep option "Keep … sold".
+  dogStatus: string | null;
+  // Label for the confirm button when there is no dog choice to make.
+  confirmLabel: string;
+  disabled?: boolean;
+  onConfirm: (keepDogReserved: boolean) => void;
+  onBack: () => void;
+}
+
+// Confirm step for Not booked / Cancel booking on a dog pickup: the admin
+// decides whether the dog becomes available again or stays reserved.
+const DogReleaseChoice = ({
+  prompt,
+  dogName,
+  dogStatus,
+  confirmLabel,
+  disabled = false,
+  onConfirm,
+  onBack,
+}: DogReleaseChoiceProps) => (
+  <div className="ah-release-choice" role="group" aria-label={prompt}>
+    <span className="ah-muted">
+      {prompt}
+      {dogName && <> What should happen to {dogName}?</>}
+    </span>
+    <div className="ah-release-choice-buttons">
+      {dogName ? (
+        <>
+          <button
+            type="button"
+            className="ah-button ah-button-danger"
+            disabled={disabled}
+            onClick={() => onConfirm(false)}
+          >
+            Make {dogName} available
+          </button>
+          <button
+            type="button"
+            className="ah-button ah-button-danger"
+            disabled={disabled}
+            onClick={() => onConfirm(true)}
+          >
+            Keep {dogName} {dogStatus === "sold" ? "sold" : "reserved"}
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          className="ah-button ah-button-danger"
+          disabled={disabled}
+          onClick={() => onConfirm(false)}
+        >
+          {confirmLabel}
+        </button>
+      )}
+      <button type="button" className="ah-button ah-button-ghost" disabled={disabled} onClick={onBack}>
+        Back
+      </button>
+    </div>
+  </div>
+);
 
 const ContactButtons = ({ event }: { event: EventRow }) => {
   const { phone, email } = getContact(event);
@@ -417,6 +523,8 @@ const AdminHome = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  // Dog inquiry whose "Not booked" is waiting for confirmation.
+  const [confirmingNotBookedId, setConfirmingNotBookedId] = useState<number | null>(null);
   const [bookingTarget, setBookingTarget] = useState<EventRow | null>(null);
   const [detailTarget, setDetailTarget] = useState<EventRow | null>(null);
   // "add" carries the date that was clicked (or "" from the Add button).
@@ -582,7 +690,15 @@ const AdminHome = () => {
   };
 
   const newInquiries = useMemo(
-    () => events.filter((event) => event.event_status === "requested"),
+    () =>
+      events
+        .filter((event) => event.event_status === "requested")
+        // Oldest first so the longest-waiting inquiry is at the top.
+        .sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
+            a.id - b.id,
+        ),
     [events],
   );
 
@@ -784,9 +900,29 @@ const AdminHome = () => {
                               Not booked
                             </button>
                           </>
-                        ) : (
-                          <>
-                            {category === "interest" && (
+                        ) : category === "interest" ? (
+                          confirmingNotBookedId === event.id ? (
+                            <DogReleaseChoice
+                              prompt="Mark as not booked?"
+                              dogName={getReleasedDogName(event)}
+                              dogStatus={event.dog_status}
+                              confirmLabel="Not booked"
+                              disabled={isBusy}
+                              onBack={() => setConfirmingNotBookedId(null)}
+                              onConfirm={(keepDogReserved) => {
+                                setConfirmingNotBookedId(null);
+                                void changeStatus(
+                                  event,
+                                  { status: "canceled", keep_dog_status: keepDogReserved },
+                                  `${contact.name} marked as not booked.${dogOutcomeMessage(
+                                    event,
+                                    keepDogReserved,
+                                  )}`,
+                                );
+                              }}
+                            />
+                          ) : (
+                            <>
                               <button
                                 type="button"
                                 className="ah-button"
@@ -795,24 +931,31 @@ const AdminHome = () => {
                               >
                                 Schedule pickup
                               </button>
-                            )}
-                            <button
-                              type="button"
-                              className={
-                                category === "interest" ? "ah-button ah-button-ghost" : "ah-button"
-                              }
-                              disabled={isBusy}
-                              onClick={() =>
-                                changeStatus(
-                                  event,
-                                  { status: "completed" },
-                                  `${contact.name}’s inquiry marked as done.`,
-                                )
-                              }
-                            >
-                              Done
-                            </button>
-                          </>
+                              <button
+                                type="button"
+                                className="ah-button ah-button-ghost"
+                                disabled={isBusy}
+                                onClick={() => setConfirmingNotBookedId(event.id)}
+                              >
+                                Not booked…
+                              </button>
+                            </>
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            className="ah-button"
+                            disabled={isBusy}
+                            onClick={() =>
+                              changeStatus(
+                                event,
+                                { status: "completed" },
+                                `${contact.name}’s inquiry marked as done.`,
+                              )
+                            }
+                          >
+                            Done
+                          </button>
                         )}
                       </div>
                     </li>
@@ -969,7 +1112,9 @@ const AdminHome = () => {
                   const label =
                     category === "boarding"
                       ? `${contact.lastName} · ${getDogCount(bar.event)}`
-                      : `${contact.lastName} · ${category === "interest" ? "Pickup" : "Training"}`;
+                      : category === "interest"
+                        ? `${contact.lastName} · ${getPickupDog(bar.event).name ?? "Dog"} pickup`
+                        : `${contact.lastName} · Training`;
 
                   return (
                     <button
@@ -1089,13 +1234,16 @@ const AdminHome = () => {
             setEditor({ mode: "edit", event: detailTarget });
             setDetailTarget(null);
           }}
-          onCancelBooking={async () => {
+          onCancelBooking={async (keepDogReserved) => {
             const target = detailTarget;
             setDetailTarget(null);
             await changeStatus(
               target,
-              { status: "canceled" },
-              `${getContact(target).name}’s booking was canceled and removed from the calendar.`,
+              { status: "canceled", keep_dog_status: keepDogReserved },
+              `${getContact(target).name}’s booking was canceled and removed from the calendar.${dogOutcomeMessage(
+                target,
+                keepDogReserved,
+              )}`,
             );
           }}
         />
@@ -1172,7 +1320,7 @@ const BookingDialog = ({ event, onClose, onConfirm }: BookingDialogProps) => {
         <p className="ah-dialog-note">
           {isPickup
             ? `Choose the day they’re picking up ${
-                getDetail(event.details, ["dog_name"]) ?? "the dog"
+                getPickupDog(event).name ?? "the dog"
               }. This adds the pickup to the calendar.`
             : "Confirm the dates you agreed on. Change them if they’re different from what was requested. This adds the booking to the calendar."}
         </p>
@@ -1221,7 +1369,7 @@ interface BookingDetailDialogProps {
   event: EventRow;
   onClose: () => void;
   onEdit: () => void;
-  onCancelBooking: () => Promise<void>;
+  onCancelBooking: (keepDogReserved: boolean) => Promise<void>;
 }
 
 const BookingDetailDialog = ({
@@ -1234,6 +1382,7 @@ const BookingDetailDialog = ({
   const contact = getContact(event);
   const message = getMessage(event);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const releasedDogName = getReleasedDogName(event);
 
   return (
     <Modal eyebrow={`Booked · ${calendarLabels[category]}`} title={contact.name} onClose={onClose}>
@@ -1269,23 +1418,14 @@ const BookingDetailDialog = ({
 
         <div className="ah-dialog-actions">
           {confirmingCancel ? (
-            <>
-              <span className="ah-muted">Remove this booking from the calendar?</span>
-              <button
-                type="button"
-                className="ah-button ah-button-ghost"
-                onClick={() => setConfirmingCancel(false)}
-              >
-                Keep it
-              </button>
-              <button
-                type="button"
-                className="ah-button ah-button-danger"
-                onClick={() => void onCancelBooking()}
-              >
-                Cancel booking
-              </button>
-            </>
+            <DogReleaseChoice
+              prompt="Remove this booking from the calendar?"
+              dogName={releasedDogName}
+              dogStatus={event.dog_status}
+              confirmLabel="Cancel booking"
+              onBack={() => setConfirmingCancel(false)}
+              onConfirm={(keepDogReserved) => void onCancelBooking(keepDogReserved)}
+            />
           ) : (
             <>
               <button
@@ -1322,6 +1462,8 @@ type EditorForm = {
   dogBreed: string;
   dogAge: string;
   dogSex: string;
+  // Pickups: selected dogs.id as a string ("" when none is linked).
+  dogId: string;
   notes: string;
 };
 
@@ -1340,6 +1482,7 @@ const toEditorForm = (event: EventRow | null, initialDate: string): EditorForm =
       dogBreed: "",
       dogAge: "",
       dogSex: "",
+      dogId: "",
       notes: "",
     };
   }
@@ -1355,10 +1498,17 @@ const toEditorForm = (event: EventRow | null, initialDate: string): EditorForm =
     phone: payload.phone,
     email: payload.email,
     dogCount: String(getDogCount(event)),
-    dogName: getDetail(event.details, ["dog_name"]) ?? "",
-    dogBreed: getDetail(event.details, ["dog_breed"]) ?? "",
+    dogName:
+      (getCategory(event.event_type) === "interest"
+        ? getPickupDog(event).name
+        : getDetail(event.details, ["dog_name"])) ?? "",
+    dogBreed:
+      (getCategory(event.event_type) === "interest"
+        ? getPickupDog(event).breed
+        : getDetail(event.details, ["dog_breed"])) ?? "",
     dogAge: getDetail(event.details, ["dog_age"]) ?? "",
     dogSex: getDetail(event.details, ["dog_sex"]) ?? "",
+    dogId: event.dog_id === null ? "" : String(event.dog_id),
     notes: getMessage(event) ?? "",
   };
 };
@@ -1371,6 +1521,9 @@ interface EventEditorDialogProps {
   onSave: (payload: AdminEventPayload) => Promise<void>;
 }
 
+const formatDogOption = (name: string | null, breed: string | null) =>
+  [name || "Unnamed dog", breed].filter(Boolean).join(" · ");
+
 const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorDialogProps) => {
   const [form, setForm] = useState<EditorForm>(() => toEditorForm(event, initialDate));
   const [availableDogs, setAvailableDogs] = useState<DogOption[]>([]);
@@ -1378,7 +1531,7 @@ const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorD
   const [formError, setFormError] = useState<string | null>(null);
   const category = getCategory(form.eventType);
 
-  // Suggestions for the dog field on pickups; typing any name still works.
+  // Options for the pickup dog: every available dog (GET /api/dogs only returns available ones).
   useEffect(() => {
     if (category !== "interest" || availableDogs.length > 0) {
       return;
@@ -1400,14 +1553,6 @@ const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorD
 
     setForm((current) => {
       const next = { ...current, [name]: value };
-
-      // Picking a listed dog fills in its breed.
-      if (name === "dogName") {
-        const match = availableDogs.find((dog) => dog.name === value);
-        if (match) {
-          next.dogBreed = match.breed;
-        }
-      }
 
       // Keep the boarding pick-up date from landing before drop-off.
       if (name === "startDate" && (!current.endDate || current.endDate < value)) {
@@ -1457,18 +1602,26 @@ const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorD
       });
     }
 
-    if (category === "interest") {
-      const match = availableDogs.find((dog) => dog.name === form.dogName.trim());
-      Object.assign(details, {
-        dog_name: form.dogName.trim(),
-        dog_breed: form.dogBreed.trim(),
-      });
+    // The linked dog lives in events.dog_id, not in details.
+    delete details.dog_id;
+    let dogId: number | null = null;
 
-      if (match) {
-        details.dog_id = match.id;
-      } else if (form.dogName.trim() !== (getDetail(event?.details ?? {}, ["dog_name"]) ?? "")) {
-        delete details.dog_id;
+    if (category === "interest") {
+      const isCurrentDog = event !== null && event.dog_id !== null && form.dogId === String(event.dog_id);
+      const chosen = availableDogs.find((dog) => String(dog.id) === form.dogId);
+
+      if (isCurrentDog) {
+        // Unchanged; the current dog is reserved, so it isn't in the available list.
+        dogId = event.dog_id;
+      } else if (chosen) {
+        dogId = chosen.id;
+        // Snapshot kept in details in case the dog is deleted later.
+        Object.assign(details, { dog_name: chosen.name ?? "", dog_breed: chosen.breed });
+      } else if (!currentPickupDog) {
+        setFormError("Please choose the dog being picked up.");
+        return;
       }
+      // Otherwise an older pickup with no linked dog keeps its saved name.
     }
 
     setSaving(true);
@@ -1482,6 +1635,7 @@ const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorD
         email: form.email.trim(),
         start_date: form.startDate,
         end_date: category === "boarding" ? form.endDate || form.startDate : null,
+        dog_id: dogId,
         details,
       });
     } catch (saveError) {
@@ -1492,6 +1646,23 @@ const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorD
 
   const startLabel =
     category === "boarding" ? "Drop-off date" : category === "interest" ? "Pickup date" : "Start date";
+
+  // First option in the pickup dog dropdown: the event's own dog, which is
+  // reserved and so isn't in the available list. Older pickups with no linked
+  // dog show their saved name (e.g. "Maggie (deleted)").
+  const currentPickupDog = (() => {
+    if (!event || getCategory(event.event_type) !== "interest") {
+      return null;
+    }
+    const dog = getPickupDog(event);
+    if (event.dog_id !== null) {
+      return {
+        value: String(event.dog_id),
+        label: `${formatDogOption(dog.name, dog.breed)} (current)`,
+      };
+    }
+    return dog.name ? { value: "", label: `${formatDogOption(dog.name, dog.breed)} (not linked)` } : null;
+  })();
 
   return (
     <Modal
@@ -1629,31 +1800,36 @@ const EventEditorDialog = ({ event, initialDate, onClose, onSave }: EventEditorD
         )}
 
         {category === "interest" && (
-          <div className="modal-field-row">
-            <label>
+          <label>
+            <span>
               Dog being picked up
-              <input
-                name="dogName"
-                list="ah-available-dogs"
-                value={form.dogName}
-                onChange={handleChange}
-                placeholder="Start typing a dog’s name"
-              />
-              <datalist id="ah-available-dogs">
-                {availableDogs
-                  .filter((dog) => dog.name)
-                  .map((dog) => (
-                    <option key={dog.id} value={dog.name ?? ""}>
-                      {dog.breed}
-                    </option>
-                  ))}
-              </datalist>
-            </label>
-            <label>
-              Breed
-              <input name="dogBreed" value={form.dogBreed} onChange={handleChange} />
-            </label>
-          </div>
+              <RequiredMark />
+            </span>
+            <select name="dogId" value={form.dogId} onChange={handleChange}>
+              {currentPickupDog ? (
+                <option value={currentPickupDog.value}>{currentPickupDog.label}</option>
+              ) : (
+                <option value="" disabled>
+                  Select a dog
+                </option>
+              )}
+              {availableDogs
+                .filter((dog) => String(dog.id) !== currentPickupDog?.value)
+                .map((dog) => (
+                  <option key={dog.id} value={dog.id}>
+                    {formatDogOption(dog.name, dog.breed)}
+                  </option>
+                ))}
+            </select>
+            {event?.dog_id !== null &&
+              event?.dog_id !== undefined &&
+              form.dogId !== String(event.dog_id) && (
+                <span className="ah-field-hint">
+                  On save, {getPickupDog(event).name ?? "the current dog"} goes back to available
+                  and the new dog is reserved.
+                </span>
+              )}
+          </label>
         )}
 
         <label>

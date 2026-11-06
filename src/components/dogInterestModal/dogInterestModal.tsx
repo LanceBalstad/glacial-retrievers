@@ -20,7 +20,7 @@ interface DogInterestModalProps {
 
 const DogInterestModal = ({ dog, onClose }: DogInterestModalProps) => {
   const [formData, setFormData] = useState<OwnerContactValues>(emptyOwnerContact);
-  const { status, message, submit, fail } = useEventRequest();
+  const { status, message, submit, fail, reset } = useEventRequest();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -44,8 +44,9 @@ const DogInterestModal = ({ dog, onClose }: DogInterestModalProps) => {
         event_type: "interested_in_dog",
         event_status: "requested",
         // No date: interest stays off the admin calendar until a pickup is scheduled.
+        dog_id: dog.id,
         details: {
-          dog_id: dog.id,
+          // Snapshot of the dog at inquiry time, kept in case the dog is later removed.
           dog_name: dog.name,
           dog_breed: dog.breed,
           owner_first_name: firstName,
@@ -72,6 +73,8 @@ const DogInterestModal = ({ dog, onClose }: DogInterestModalProps) => {
       title={`I’m interested in ${dog.name || "this dog"}`}
       subtitle={dog.name ? `${dog.name} · ${dog.breed}` : dog.breed}
       onClose={onClose}
+      successMessage={status === "success" ? message : null}
+      onDismissSuccess={reset}
     >
       <form className="modal-form" onSubmit={handleSubmit}>
         <OwnerContactFields values={formData} onChange={handleChange} />

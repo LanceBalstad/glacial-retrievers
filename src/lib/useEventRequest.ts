@@ -36,7 +36,12 @@ const useEventRequest = () => {
     }
   };
 
-  return { status, message, submit, fail };
+  const reset = () => {
+    setStatus("idle");
+    setMessage("");
+  };
+
+  return { status, message, submit, fail, reset };
 };
 
 export default useEventRequest;

@@ -26,9 +26,6 @@ type SexFilter = "" | "M" | "F";
 
 interface AvailableDogsProps {
   puppiesOnly?: boolean;
-  adminMode?: boolean;
-  onEditDog?: (dog: Dog) => void;
-  onDeleteDog?: (dogId: number) => void;
 }
 
 const calculateAge = (dateOfBirth: string | null): string | null => {
@@ -67,15 +64,9 @@ const calculateAge = (dateOfBirth: string | null): string | null => {
 
 const DogCard = ({
   dog,
-  adminMode = false,
-  onEditDog,
-  onDeleteDog,
   onInterestClick,
 }: {
   dog: Dog;
-  adminMode?: boolean;
-  onEditDog?: (dog: Dog) => void;
-  onDeleteDog?: (dogId: number) => void;
   onInterestClick?: (dog: Dog) => void;
 }) => {
   const numericPrice = dog.price === null ? null : Number(dog.price);
@@ -118,45 +109,19 @@ const DogCard = ({
           <p className="available-dog-description">{dog.description}</p>
         )}
 
-        {adminMode && (
-          <div className="admin-dog-actions">
-            <button
-              type="button"
-              className="admin-dog-edit"
-              onClick={() => onEditDog?.(dog)}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="admin-dog-delete"
-              onClick={() => onDeleteDog?.(dog.id)}
-            >
-              Delete
-            </button>
-          </div>
-        )}
-
-        {!adminMode && (
-          <button
-            className="available-dog-interest"
-            type="button"
-            onClick={() => onInterestClick?.(dog)}
-          >
-            I’m interested
-          </button>
-        )}
+        <button
+          className="available-dog-interest"
+          type="button"
+          onClick={() => onInterestClick?.(dog)}
+        >
+          I’m interested
+        </button>
       </div>
     </article>
   );
 };
 
-const AvailableDogs = ({
-  puppiesOnly = false,
-  adminMode = false,
-  onEditDog,
-  onDeleteDog,
-}: AvailableDogsProps) => {
+const AvailableDogs = ({ puppiesOnly = false }: AvailableDogsProps) => {
   const [breeds, setBreeds] = useState<BreedOption[]>([]);
   const [dogs, setDogs] = useState<Dog[]>([]);
   const [breedId, setBreedId] = useState("");
@@ -378,9 +343,6 @@ const AvailableDogs = ({
               <DogCard
                 key={dog.id}
                 dog={dog}
-                adminMode={adminMode}
-                onEditDog={onEditDog}
-                onDeleteDog={onDeleteDog}
                 onInterestClick={setInterestDog}
               />
             ))}

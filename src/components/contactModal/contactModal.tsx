@@ -24,7 +24,7 @@ const initialFormState: ContactFormState = {
 
 const ContactModal = ({ onClose }: ContactModalProps) => {
   const [formData, setFormData] = useState<ContactFormState>(initialFormState);
-  const { status, message, submit } = useEventRequest();
+  const { status, message, submit, reset } = useEventRequest();
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -63,7 +63,13 @@ const ContactModal = ({ onClose }: ContactModalProps) => {
   };
 
   return (
-    <InquiryModalLayout eyebrow="Contact us" title="Ask a question" onClose={onClose}>
+    <InquiryModalLayout
+      eyebrow="Contact us"
+      title="Ask a question"
+      onClose={onClose}
+      successMessage={status === "success" ? message : null}
+      onDismissSuccess={reset}
+    >
       <form className="modal-form" onSubmit={handleSubmit}>
         <OwnerContactFields values={formData} onChange={handleChange} />
 

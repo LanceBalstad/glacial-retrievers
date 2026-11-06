@@ -1,0 +1,225 @@
+.sign-document {
+  --sd-accent: #db5931;
+  --sd-accent-dark: #b94421;
+  --sd-ink: #1f2420;
+  --sd-muted: #6b6b66;
+  --sd-line: #e2dcd4;
+  --sd-canvas: #f6f2ec;
+  padding: clamp(20px, 5vw, 56px) 16px;
+  background: var(--sd-canvas);
+  color: var(--sd-ink);
+}
+
+.sd-card {
+  display: grid;
+  gap: 18px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 36px);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.sd-card h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  line-height: 1.2;
+}
+
+.sd-card p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.sd-eyebrow {
+  color: var(--sd-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sd-muted {
+  color: var(--sd-muted);
+}
+
+.sd-view-link {
+  justify-self: start;
+  color: var(--sd-accent-dark);
+  font-weight: 700;
+}
+
+.sd-section {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px solid var(--sd-line);
+}
+
+.sd-section > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.sd-field {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.sd-field input,
+.sd-field select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #d0c8bf;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--sd-ink);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.sd-field input:focus,
+.sd-field select:focus {
+  outline: 3px solid rgba(219, 89, 49, 0.2);
+  border-color: var(--sd-accent);
+}
+
+.sd-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.sd-check input {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: var(--sd-accent);
+}
+
+.sd-consent {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sd-canvas);
+  font-size: 0.95rem;
+}
+
+/* ---------- Signature pad ---------- */
+
+.sd-pad {
+  position: relative;
+}
+
+.sd-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border: 1px solid #d0c8bf;
+  border-radius: 12px;
+  background:
+    linear-gradient(to top, transparent 44px, #c9c1b7 44px, #c9c1b7 45px, transparent 45px),
+    #fff;
+  /* Let the finger draw instead of scrolling the page. */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sd-pad-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #a39b91;
+  pointer-events: none;
+}
+
+.sd-link-button {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sd-accent-dark);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sd-link-button:disabled {
+  color: var(--sd-muted);
+  text-decoration: none;
+  cursor: default;
+}
+
+/* ---------- Actions / states ---------- */
+
+.sd-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sd-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sd-button:hover:not(:disabled) {
+  background: var(--sd-accent-dark);
+}
+
+.sd-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.sd-button:focus-visible,
+.sd-link-button:focus-visible,
+.sd-view-link:focus-visible {
+  outline: 3px solid rgba(219, 89, 49, 0.35);
+  outline-offset: 3px;
+}
+
+.sd-error {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fdecea;
+  color: #8f2d12;
+  font-weight: 600;
+}
+
+.sd-done {
+  justify-items: center;
+  text-align: center;
+}
+
+.sd-done-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #1f5636;
+  color: #fff;
+  font-size: 1.7rem;
+  font-weight: 700;
+}

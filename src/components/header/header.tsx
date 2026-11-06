@@ -19,6 +19,7 @@ const publicNavItems = [
 const adminNavItems = [
   { label: "Home", to: "/admin/home" },
   { label: "Dogs", to: "/admin/dogs" },
+  { label: "Documents", to: "/admin/documents" },
 ];
 
 export const Header = () => {

@@ -41,7 +41,7 @@ const initialFormState: BookingFormState = {
 
 const TrainingBookingModal = ({ onClose }: TrainingBookingModalProps) => {
   const [formData, setFormData] = useState<BookingFormState>(initialFormState);
-  const { status, message, submit } = useEventRequest();
+  const { status, message, submit, reset } = useEventRequest();
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -88,6 +88,8 @@ const TrainingBookingModal = ({ onClose }: TrainingBookingModalProps) => {
       title="Training inquiry"
       size="wide"
       onClose={onClose}
+      successMessage={status === "success" ? message : null}
+      onDismissSuccess={reset}
     >
       <form className="modal-form" onSubmit={handleSubmit}>
         <div className="modal-field-row">

@@ -18,6 +18,8 @@ export interface CreateEventPayload {
   // Optional only for interested_in_dog, which has no date until a pickup is scheduled.
   start_date?: string | null;
   end_date?: string | null;
+  // Required for interested_in_dog (saved to events.dog_id); ignored for other types.
+  dog_id?: number | null;
   details: Record<string, unknown>;
 }
 

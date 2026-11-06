@@ -7,6 +7,8 @@ interface ModalProps {
   subtitle?: string;
   size?: "default" | "wide";
   onClose: () => void;
+  // Set false for modals that should only close via the × button (or Escape).
+  closeOnBackdropClick?: boolean;
   children: ReactNode;
 }
 
@@ -16,6 +18,7 @@ const Modal = ({
   subtitle,
   size = "default",
   onClose,
+  closeOnBackdropClick = true,
   children,
 }: ModalProps) => {
   const titleId = useId();
@@ -41,7 +44,7 @@ const Modal = ({
     <div
       className="modal-backdrop"
       onClick={(event) => {
-        if (event.target === event.currentTarget) {
+        if (closeOnBackdropClick && event.target === event.currentTarget) {
           onClose();
         }
       }}
