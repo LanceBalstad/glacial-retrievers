@@ -29,6 +29,9 @@ const firebaseAdminAuth = firebaseProjectId
   : null;
 
 const app = express();
+// Behind Firebase Hosting + Cloud Run: use X-Forwarded-For / -Proto / -Host so
+// req.ip is the visitor's IP (signing certificates) and share links use https.
+app.set("trust proxy", true);
 const { Pool } = pg;
 
 const pool = new Pool({
