@@ -538,6 +538,19 @@ const AdminDogs = () => {
     }
   };
 
+  // Opens Facebook's own share screen with this dog's share link. Facebook
+  // builds the preview (photo, name, details) from /share/dogs/:id, and the
+  // admin picks the Glacial Retrievers Page, adds a caption and posts. Nothing
+  // is connected or stored on our side.
+  const postToFacebook = (dog: AdminDog) => {
+    const shareLink = `${window.location.origin}/share/dogs/${dog.id}`;
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`,
+      "_blank",
+      "noopener,noreferrer,width=680,height=640",
+    );
+  };
+
   // Opens the delete dialog and checks whether anyone is waiting on this dog.
   const handleDeleteDog = async (dog: AdminDog) => {
     if (!isAdmin) {
@@ -1115,6 +1128,14 @@ const AdminDogs = () => {
                           <p className="admin-dog-description">{dog.description}</p>
                         )}
                         <div className="admin-dog-actions">
+                          <button
+                            type="button"
+                            className="admin-dog-post"
+                            title={dog.photo_url ? "Share this dog on Facebook" : "Tip: add a photo first so the post shows it"}
+                            onClick={() => postToFacebook(dog)}
+                          >
+                            Post
+                          </button>
                           <button
                             type="button"
                             className="admin-dog-edit"

@@ -7,6 +7,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": "http://localhost:3000",
+      // Facebook share links (server/src/dogShare.ts).
+      "/share": "http://localhost:3000",
     },
   },
 })

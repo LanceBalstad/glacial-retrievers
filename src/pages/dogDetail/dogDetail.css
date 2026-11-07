@@ -1,0 +1,185 @@
+.dog-detail {
+  --dd-accent: #db5931;
+  --dd-accent-dark: #b94421;
+  --dd-ink: #2c2c2c;
+  --dd-muted: #5b5b5b;
+  --dd-surface: #f5f2ed;
+  color: var(--dd-ink);
+}
+
+.dd-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 64px) clamp(16px, 5vw, 40px);
+}
+
+.dd-back {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: var(--dd-accent-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dd-back:hover {
+  text-decoration: underline;
+}
+
+.dd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 56px);
+  align-items: start;
+}
+
+.dd-photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: #e5e0d9;
+}
+
+.dd-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dd-status {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 7px 10px;
+  background: #6b6b6b;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dd-status-available {
+  background: var(--dd-accent);
+}
+
+.dd-status-reserved {
+  background: #c99a12;
+  color: #2c2200;
+}
+
+.dd-status-sold {
+  background: #2c2c2c;
+}
+
+.dd-info {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.dd-breed {
+  margin: 0;
+  color: var(--dd-accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dd-info h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 5vw, 2.8rem);
+  line-height: 1.1;
+}
+
+.dd-price {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.dd-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dd-facts span {
+  padding: 6px 10px;
+  background: var(--dd-surface);
+  color: var(--dd-muted);
+  font-size: 0.9rem;
+}
+
+.dd-description {
+  margin: 0;
+  color: #4b4b4b;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.dd-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--dd-accent);
+  background: var(--dd-surface);
+  line-height: 1.5;
+}
+
+.dd-button {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 1px solid var(--dd-accent);
+  background: var(--dd-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dd-button:hover {
+  border-color: var(--dd-accent-dark);
+  background: var(--dd-accent-dark);
+}
+
+.dd-button-ghost {
+  background: transparent;
+  color: var(--dd-accent);
+}
+
+.dd-button-ghost:hover {
+  color: #fff;
+}
+
+.dd-button:focus-visible,
+.dd-back:focus-visible {
+  outline: 3px solid var(--dd-accent);
+  outline-offset: 3px;
+}
+
+.dd-message {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: clamp(40px, 8vw, 80px) 16px;
+  line-height: 1.6;
+}
+
+.dd-message h1,
+.dd-message p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .dd-layout {
+    grid-template-columns: 1fr;
+  }
+}

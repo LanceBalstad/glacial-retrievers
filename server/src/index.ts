@@ -6,6 +6,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import pg from "pg";
 import { DOG_PHOTO_URL_SQL, registerDogImageRoutes } from "./dogImages.js";
+import { registerDogShareRoutes } from "./dogShare.js";
 import { registerDocumentRoutes } from "./documents.js";
 
 dotenv.config();
@@ -67,6 +68,7 @@ app.use("/api/admin", requireAdmin);
 
 registerDocumentRoutes(app, pool);
 registerDogImageRoutes(app, pool);
+registerDogShareRoutes(app, pool);
 
 app.get("/api/health", async (_req, res) => {
   try {

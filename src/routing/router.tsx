@@ -8,6 +8,7 @@ import AdminHome from "../pages/adminHome/adminHome.tsx";
 import AdminLogin from "../pages/adminLogin/adminLogin.tsx";
 import AllDogs from "../pages/allDogs/allDogs.tsx";
 import Boarding from "../pages/boarding/boarding.tsx";
+import DogDetail, { ShareDogRedirect } from "../pages/dogDetail/dogDetail.tsx";
 import Puppies from "../pages/puppies/puppies.tsx";
 import SignDocument from "../pages/signDocument/signDocument.tsx";
 import Training from "../pages/training/training.tsx";
@@ -26,6 +27,9 @@ export const Router = createBrowserRouter([
       // Public signing page; the token in the link is the only key.
       { path: "/sign/:token", element: <SignDocument /> },
       { path: "/all-dogs", element: <AllDogs /> },
+      { path: "/dogs/:id", element: <DogDetail /> },
+      // Facebook share links; the API server answers these for Facebook's preview.
+      { path: "/share/dogs/:id", element: <ShareDogRedirect /> },
       { path: "/boarding", element: <Boarding /> },
       { path: "/puppies", element: <Puppies /> },
       { path: "/training", element: <Training /> },
