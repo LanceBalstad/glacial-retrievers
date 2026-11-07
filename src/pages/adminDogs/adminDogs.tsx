@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import logo from "../../assets/logo.jpg";
 import {
   auth,
@@ -7,6 +7,7 @@ import {
 } from "../../lib/firebase";
 import { adminFetch } from "../../lib/adminApi";
 import BreedSelect, { type BreedOption } from "./breedSelect.tsx";
+import { preparePhoto, type PreparedPhoto } from "./preparePhoto";
 import "./adminDogs.css";
 
 interface DogFormState {
@@ -15,7 +16,6 @@ interface DogFormState {
   name: string;
   date_of_birth: string;
   sex: "M" | "F" | "";
-  image_url: string;
   price: string;
   description: string;
 }
@@ -26,7 +26,6 @@ const emptyFormState: DogFormState = {
   name: "",
   date_of_birth: "",
   sex: "",
-  image_url: "",
   price: "",
   description: "",
 };
@@ -39,7 +38,8 @@ interface AdminDog {
   name: string | null;
   date_of_birth: string | null; // YYYY-MM-DD
   sex: "M" | "F" | null;
-  image_url: string | null;
+  // Uploaded photo (/api/dogs/:id/image?v=…), or null if none.
+  photo_url: string | null;
   price: string | number | null;
   description: string | null;
   breed: string | null;
@@ -138,6 +138,14 @@ const AdminDogs = () => {
   const [originalStatusId, setOriginalStatusId] = useState<number | null>(null);
   const [isAddingBreed, setIsAddingBreed] = useState(false);
   const [newBreedName, setNewBreedName] = useState("");
+  // Photo in the add/edit form: the dog's current uploaded photo, a newly
+  // picked one waiting for Save, or a pending removal.
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<PreparedPhoto | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [dogForm, setDogForm] = useState<DogFormState>(emptyFormState);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDogId, setEditingDogId] = useState<number | null>(null);
@@ -307,8 +315,55 @@ const AdminDogs = () => {
     setNewBreedName("");
   };
 
+  const resetPhoto = (currentPhotoUrl: string | null) => {
+    setExistingPhotoUrl(currentPhotoUrl);
+    setPendingPhoto(null);
+    setRemovePhoto(false);
+    setPhotoError(null);
+  };
+
+  // The admin picked a photo from the camera roll: shrink it and preview it.
+  // It's uploaded when the dog is saved.
+  const handlePhotoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setPhotoError(null);
+    setIsPreparingPhoto(true);
+    try {
+      setPendingPhoto(await preparePhoto(file));
+      setRemovePhoto(false);
+    } catch (prepareError) {
+      setPhotoError(prepareError instanceof Error ? prepareError.message : "That photo couldn’t be used.");
+    } finally {
+      setIsPreparingPhoto(false);
+    }
+  };
+
+  // Uploads or removes the photo after the dog itself is saved.
+  const syncPhoto = async (dogId: number) => {
+    if (pendingPhoto) {
+      const response = await adminFetch(`/api/admin/dogs/${dogId}/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pendingPhoto),
+      });
+      if (!response.ok) {
+        const result: { error?: string } = await response.json().catch(() => ({}));
+        throw new Error(`The dog was saved, but the photo didn’t upload: ${result.error ?? "please try again."}`);
+      }
+    } else if (removePhoto && existingPhotoUrl) {
+      const response = await adminFetch(`/api/admin/dogs/${dogId}/image`, { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("The dog was saved, but the photo couldn’t be removed. Please try again.");
+      }
+    }
+  };
+
   const openCreateForm = () => {
     resetNewBreed();
+    resetPhoto(null);
     setStatusWarning(null);
     setOriginalStatusId(null);
     setEditingDogId(null);
@@ -323,6 +378,7 @@ const AdminDogs = () => {
 
   const openEditForm = (dog: AdminDog) => {
     resetNewBreed();
+    resetPhoto(dog.photo_url);
     setStatusWarning(null);
     setOriginalStatusId(dog.status_id ?? null);
     setEditingDogId(dog.id);
@@ -332,7 +388,6 @@ const AdminDogs = () => {
       name: dog.name ?? "",
       date_of_birth: dog.date_of_birth ?? "",
       sex: dog.sex ?? "",
-      image_url: dog.image_url ?? "",
       price: dog.price == null ? "" : String(dog.price),
       description: dog.description ?? "",
     });
@@ -360,6 +415,11 @@ const AdminDogs = () => {
     const status = statusOptions.find((option) => option.id === statusId)?.status ?? "unknown";
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
+
+  // The newly picked photo, else the dog's current photo (unless removed).
+  const hasUploadedPhoto = pendingPhoto !== null || (existingPhotoUrl !== null && !removePhoto);
+  const photoPreviewUrl =
+    pendingPhoto?.card ?? (existingPhotoUrl && !removePhoto ? `${existingPhotoUrl}&size=card` : null);
 
   // force = the admin chose "Save anyway" after the status warning.
   const handleSaveDog = async (force = false) => {
@@ -418,7 +478,6 @@ const AdminDogs = () => {
         name: dogForm.name.trim(),
         date_of_birth: dogForm.date_of_birth || null,
         sex: dogForm.sex || null,
-        image_url: dogForm.image_url.trim() || null,
         price: dogForm.price === "" ? null : Number(dogForm.price),
         description: dogForm.description.trim() || null,
       };
@@ -446,6 +505,21 @@ const AdminDogs = () => {
         }
 
         throw new Error(result.error || "Unable to save this dog.");
+      }
+
+      // A new dog gets its id from the response. Keep it, so retrying after a
+      // failed photo upload updates this dog instead of creating another.
+      let savedDogId = editingDogId;
+      if (savedDogId === null) {
+        const created: { id?: number } = await response.json().catch(() => ({}));
+        savedDogId = created.id ?? null;
+        if (savedDogId !== null) {
+          setEditingDogId(savedDogId);
+          setRefreshKey((value) => value + 1);
+        }
+      }
+      if (savedDogId !== null) {
+        await syncPhoto(savedDogId);
       }
 
       setStatusWarning(null);
@@ -684,16 +758,57 @@ const AdminDogs = () => {
                   />
                 </label>
 
-                <label className="admin-form-full">
-                  <span>Image URL</span>
+                <div className="admin-form-full admin-photo-field">
+                  <span className="admin-photo-label">Photo</span>
+                  <div className="admin-photo-row">
+                    <div className="admin-photo-preview">
+                      {photoPreviewUrl ? (
+                        <img src={photoPreviewUrl} alt="Dog photo preview" />
+                      ) : (
+                        <span>No photo yet</span>
+                      )}
+                    </div>
+                    <div className="admin-photo-actions">
+                      <button
+                        type="button"
+                        className="admin-photo-button"
+                        disabled={isPreparingPhoto}
+                        onClick={() => photoInputRef.current?.click()}
+                      >
+                        {isPreparingPhoto ? "Preparing photo…" : hasUploadedPhoto ? "Change photo" : "Upload photo"}
+                      </button>
+                      {hasUploadedPhoto && (
+                        <button
+                          type="button"
+                          className="admin-photo-remove"
+                          disabled={isPreparingPhoto}
+                          onClick={() => {
+                            setPendingPhoto(null);
+                            setRemovePhoto(true);
+                          }}
+                        >
+                          Remove photo
+                        </button>
+                      )}
+                      <p className="admin-photo-hint">
+                        {pendingPhoto
+                          ? "New photo ready. It’s uploaded when you save."
+                          : removePhoto
+                            ? "Photo will be removed when you save."
+                            : "Choose a photo from your camera roll, or take a new one."}
+                      </p>
+                    </div>
+                  </div>
+                  {photoError && <p className="admin-dog-form-error">{photoError}</p>}
+                  {/* accept="image/*" without capture: phones offer Photo Library and Camera. */}
                   <input
-                    type="url"
-                    name="image_url"
-                    value={dogForm.image_url}
-                    onChange={handleFieldChange}
-                    placeholder="https://example.com/image.jpg"
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(event) => void handlePhotoFile(event)}
                   />
-                </label>
+                </div>
 
                 <label className="admin-form-full">
                   <span>Description</span>
@@ -972,7 +1087,7 @@ const AdminDogs = () => {
                       <div className="admin-dog-image-wrap">
                         <img
                           className="admin-dog-image"
-                          src={dog.image_url || logo}
+                          src={dog.photo_url ? `${dog.photo_url}&size=card` : logo}
                           alt={dog.name ? `${dog.name}, ${breed}` : breed}
                           loading="lazy"
                           onError={(event) => {

@@ -83,11 +83,32 @@
     text-transform: uppercase;
 }
 
-.boarding-location-callout strong {
+.boarding-location-address {
+    display: grid;
+    gap: 2px;
+    font-style: normal;
+}
+
+.boarding-location-address strong {
     font-size: 1.5rem;
 }
 
-.boarding-location-callout > span:last-child {
+.boarding-location-address span {
+    font-size: 1.1rem;
+}
+
+.boarding-location-directions {
+    justify-self: start;
+    color: var(--page-accent);
+    font-weight: 700;
+}
+
+.boarding-location-directions:focus-visible {
+    outline: 3px solid var(--page-accent);
+    outline-offset: 3px;
+}
+
+.boarding-location-note {
     color: #4b4b4b;
     line-height: 1.6;
 }

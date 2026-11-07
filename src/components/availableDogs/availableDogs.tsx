@@ -16,7 +16,8 @@ interface Dog {
   breed: string;
   date_of_birth: string | null;
   sex: "M" | "F" | null;
-  image_url: string | null;
+  // Uploaded photo (/api/dogs/:id/image?v=…), or null if none.
+  photo_url: string | null;
   price: string | number | null;
   description: string | null;
 }
@@ -85,7 +86,7 @@ const DogCard = ({
       <div className="available-dog-image-wrap">
         <img
           className="available-dog-image"
-          src={dog.image_url || logo}
+          src={dog.photo_url ? `${dog.photo_url}&size=card` : logo}
           alt={dog.name ? `${dog.name}, ${dog.breed}` : dog.breed}
           loading="lazy"
           onError={(event) => {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./footer.css";
 import ContactModal from "../contactModal/contactModal.tsx";
 import FacebookIcon from "../icons/facebookIcon.tsx";
-import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_HREF } from "../../lib/contact";
+import { BUSINESS_ADDRESS, BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_HREF } from "../../lib/contact";
 
 export interface FooterContent {
   eyebrow: string;
@@ -30,7 +30,7 @@ const Footer = ({ content }: FooterProps) => {
         <div className="site-footer-action">
           <div className="site-footer-contact-list">
             <p className="site-footer-note">{content.note}</p>
-            <p className="site-footer-contact">1877 230th Ave, Mahnomen, MN, United States, Minnesota</p>
+            <p className="site-footer-contact">{BUSINESS_ADDRESS}</p>
             <a className="site-footer-contact" href={BUSINESS_PHONE_HREF}>
               {BUSINESS_PHONE_DISPLAY}
             </a>

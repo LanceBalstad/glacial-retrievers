@@ -5,13 +5,18 @@ import PageFaq, {
   type PageQuestion,
 } from "../../components/pageFaq/pageFaq.tsx";
 import PageHero from "../../components/pageHero/pageHero.tsx";
+import {
+  BUSINESS_ADDRESS,
+  BUSINESS_ADDRESS_CITY,
+  BUSINESS_ADDRESS_STREET,
+  BUSINESS_DIRECTIONS_HREF,
+} from "../../lib/contact";
 import "./boarding.css";
 
 const boardingQuestions: PageQuestion[] = [
   {
     question: "Where are you located?",
-    answer:
-      "Our boarding page is based in Mahnomen, Minnesota. Please contact us before your visit to confirm the exact address, directions, and drop-off arrangements.",
+    answer: `We're located at ${BUSINESS_ADDRESS}. Please contact us before your visit to arrange your drop-off time.`,
   },
   {
     question: "What should I bring for my dog's stay?",
@@ -102,16 +107,27 @@ const Boarding = () => {
           <p className="boarding-eyebrow">Find us</p>
           <h2>Boarding in Mahnomen, Minnesota</h2>
           <p>
-            Glacial Retrievers is located in Mahnomen, MN. Contact us before
-            heading over and we’ll confirm the exact address, directions, and
-            arrival arrangements.
+            Glacial Retrievers is located at {BUSINESS_ADDRESS_STREET} in{" "}
+            {BUSINESS_ADDRESS_CITY}. Please contact us before heading over so we
+            can confirm your drop-off time and arrival arrangements.
           </p>
         </div>
         <div className="boarding-location-callout">
           <span className="boarding-location-label">Location</span>
-          <strong>Mahnomen, MN</strong>
-          <span>
-            Exact address and directions available when you contact us.
+          <address className="boarding-location-address">
+            <strong>{BUSINESS_ADDRESS_STREET}</strong>
+            <span>{BUSINESS_ADDRESS_CITY}</span>
+          </address>
+          <a
+            className="boarding-location-directions"
+            href={BUSINESS_DIRECTIONS_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Get directions
+          </a>
+          <span className="boarding-location-note">
+            Please call ahead to arrange your drop-off.
           </span>
         </div>
       </section>

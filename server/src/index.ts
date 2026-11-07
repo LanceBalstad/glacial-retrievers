@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import pg from "pg";
+import { DOG_PHOTO_URL_SQL, registerDogImageRoutes } from "./dogImages.js";
 import { registerDocumentRoutes } from "./documents.js";
 
 dotenv.config();
@@ -59,11 +60,13 @@ const requireAdmin = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 app.use(cors({ origin: "http://localhost:5173" }));
-// 1mb leaves room for the signature image posted to /api/sign/:token.
-app.use(express.json({ limit: "1mb" }));
+// Room for the signature image (/api/sign/:token) and resized dog photos
+// (/api/admin/dogs/:id/image), which are sent as base64 data URLs.
+app.use(express.json({ limit: "2mb" }));
 app.use("/api/admin", requireAdmin);
 
 registerDocumentRoutes(app, pool);
+registerDogImageRoutes(app, pool);
 
 app.get("/api/health", async (_req, res) => {
   try {
@@ -138,12 +141,13 @@ app.get("/api/dogs", async (req, res) => {
          b.breed,
          to_char(d.date_of_birth, 'YYYY-MM-DD') AS date_of_birth,
          d.sex,
-         d.image_url,
+         ${DOG_PHOTO_URL_SQL} AS photo_url,
          d.price,
          d.description
        FROM dogs d
        JOIN dog_breeds b ON b.id = d.breed_id
        JOIN dog_status s ON s.id = d.status_id
+       LEFT JOIN public.dog_images di ON di.dog_id = d.id
        WHERE s.status = 'available'
          AND ($1::integer IS NULL OR b.id = $1)
          AND ($2::char IS NULL OR d.sex = $2)
@@ -196,11 +200,6 @@ const normalizeDogPayload = (body: unknown) => {
       ? null
       : String(record.date_of_birth).trim();
 
-  const imageUrl =
-    record.image_url === null || record.image_url === undefined || record.image_url === ""
-      ? null
-      : String(record.image_url).trim();
-
   const priceValue: number | null =
     record.price === null || record.price === undefined || record.price === ""
       ? null
@@ -221,7 +220,6 @@ const normalizeDogPayload = (body: unknown) => {
     name: name || null,
     date_of_birth: dateOfBirth,
     sex: sexValue,
-    image_url: imageUrl,
     price: priceValue,
     description: description || null,
   };
@@ -374,7 +372,7 @@ app.get("/api/admin/dogs", async (_req, res) => {
          d.name,
          to_char(d.date_of_birth, 'YYYY-MM-DD') AS date_of_birth,
          d.sex,
-         d.image_url,
+         ${DOG_PHOTO_URL_SQL} AS photo_url,
          d.price,
          d.description,
          d.created_at,
@@ -384,6 +382,7 @@ app.get("/api/admin/dogs", async (_req, res) => {
        FROM public.dogs d
        LEFT JOIN public.dog_breeds b ON b.id = d.breed_id
        LEFT JOIN public.dog_status s ON s.id = d.status_id
+       LEFT JOIN public.dog_images di ON di.dog_id = d.id
        ORDER BY d.created_at DESC, d.id DESC`,
     );
 
@@ -1077,20 +1076,18 @@ app.post("/api/admin/dogs", async (req, res) => {
          name,
          date_of_birth,
          sex,
-         image_url,
          price,
          description,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-       RETURNING *`,
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+       RETURNING id`,
       [
         payload.breed_id,
         payload.status_id,
         payload.name,
         payload.date_of_birth,
         payload.sex,
-        payload.image_url,
         payload.price,
         payload.description,
       ],
@@ -1153,19 +1150,17 @@ app.put("/api/admin/dogs/:id", async (req, res) => {
            name = $3,
            date_of_birth = $4,
            sex = $5,
-           image_url = $6,
-           price = $7,
-           description = $8,
+           price = $6,
+           description = $7,
            updated_at = NOW()
-       WHERE id = $9
-       RETURNING *`,
+       WHERE id = $8
+       RETURNING id`,
       [
         payload.breed_id,
         payload.status_id,
         payload.name,
         payload.date_of_birth,
         payload.sex,
-        payload.image_url,
         payload.price,
         payload.description,
         dogId,

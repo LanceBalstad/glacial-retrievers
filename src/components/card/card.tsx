@@ -6,9 +6,11 @@ interface CardProps {
   alt: string;
   banner: string;
   slug: string;
+  // Short description shown when the card is hovered.
+  message: string;
 }
 
-const Card = ({ image, alt, banner, slug }: CardProps) => {
+const Card = ({ image, alt, banner, slug, message }: CardProps) => {
   return (
     <div className="container">
       <img className="image" src={image} alt={alt} />
@@ -16,10 +18,7 @@ const Card = ({ image, alt, banner, slug }: CardProps) => {
       {banner && <h1 className="banner">{banner}</h1>}
 
       <div className="message">
-        <p>
-          Learn more about {banner.toLowerCase()}, including breed information
-          and care considerations.
-        </p>
+        <p>{message}</p>
       </div>
 
       <Link to={`/${slug}`} className="learn-more">
